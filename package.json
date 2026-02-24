@@ -1,0 +1,47 @@
+{
+  "name": "nonprofit-treasurer",
+  "version": "1.0.0",
+  "description": "Financial management application for small nonprofit associations",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "setup-sheets": "tsx src/scripts/setup-sheets.ts"
+  },
+  "dependencies": {
+    "@paypal/paypal-js": "^8.0.0",
+    "clsx": "^2.1.0",
+    "date-fns": "^3.6.0",
+    "googleapis": "^140.0.0",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.0",
+    "next": "^14.2.0",
+    "next-auth": "^4.24.0",
+    "papaparse": "^5.4.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-hot-toast": "^2.4.0",
+    "react-icons": "^5.0.0",
+    "recharts": "^2.12.0",
+    "square": "^37.0.0",
+    "uuid": "^9.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "@types/papaparse": "^5.3.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^9.0.0",
+    "autoprefixer": "^10.4.0",
+    "dotenv": "^17.3.1",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}
