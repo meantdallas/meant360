@@ -1,10 +1,11 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { HiOutlineBars3 } from 'react-icons/hi2';
+import { HiOutlineShieldExclamation } from 'react-icons/hi2';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -29,6 +30,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (!session) return null;
+
+  const role = (session.user as Record<string, unknown>)?.role;
+  if (!role) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-8">
+          <HiOutlineShieldExclamation className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-600 mb-1">
+            Your account is not authorized to access this application.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Signed in as {session.user?.email}
+          </p>
+          <button
+            onClick={() => signOut({ callbackUrl: '/' })}
+            className="btn-primary"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

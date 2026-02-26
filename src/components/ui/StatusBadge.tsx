@@ -16,6 +16,10 @@ const variants: Record<string, string> = {
   Active: 'bg-green-100 text-green-800',
   'Not Renewed': 'bg-yellow-100 text-yellow-800',
   Expired: 'bg-red-100 text-red-800',
+  Member: 'bg-indigo-100 text-indigo-800',
+  Guest: 'bg-purple-100 text-purple-800',
+  'Checked In': 'bg-green-100 text-green-800',
+  Registered: 'bg-blue-100 text-blue-800',
 };
 
 interface StatusBadgeProps {

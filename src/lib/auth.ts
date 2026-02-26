@@ -1,19 +1,61 @@
 import { type NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import { type UserRole } from '@/types';
+import { type UserRole, SHEET_TABS } from '@/types';
+import { getRows } from './google-sheets';
 
 // ========================================
 // NextAuth Configuration
 // ========================================
 
-function getUserRole(email: string): UserRole {
-  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase());
-  const treasurerEmails = (process.env.TREASURER_EMAILS || '').split(',').map((e) => e.trim().toLowerCase());
+// --- Admin email cache (5-minute TTL) ---
+let adminEmailCache: { emails: Set<string>; fetchedAt: number } | null = null;
+const ADMIN_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getAdminEmails(): Promise<Set<string>> {
+  const now = Date.now();
+  if (adminEmailCache && now - adminEmailCache.fetchedAt < ADMIN_CACHE_TTL) {
+    return adminEmailCache.emails;
+  }
+
+  try {
+    const rows = await getRows(SHEET_TABS.ADMINS);
+    const emails = new Set(rows.map((r) => (r.email || '').trim().toLowerCase()).filter(Boolean));
+    adminEmailCache = { emails, fetchedAt: now };
+    return emails;
+  } catch {
+    // If sheet doesn't exist yet, return empty set
+    return new Set();
+  }
+}
+
+async function getUserRole(email: string): Promise<UserRole | null> {
   const lowerEmail = email.toLowerCase();
 
-  if (adminEmails.includes(lowerEmail)) return 'admin';
-  if (treasurerEmails.includes(lowerEmail)) return 'treasurer';
-  return 'viewer';
+  // 1. Check Admins sheet
+  const sheetAdmins = await getAdminEmails();
+  if (sheetAdmins.has(lowerEmail)) return 'admin';
+
+  // 2. Fallback: check ADMIN_EMAILS env var (bootstrap)
+  const envAdmins = (process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+  if (envAdmins.includes(lowerEmail)) return 'admin';
+
+  // 3. Check Members sheet (Active status, match loginEmail/email/spouseEmail)
+  try {
+    const members = await getRows(SHEET_TABS.MEMBERS);
+    const isActiveMember = members.some((m) => {
+      if (m.status !== 'Active') return false;
+      const loginEmail = (m.loginEmail || '').trim().toLowerCase();
+      const memberEmail = (m.email || '').trim().toLowerCase();
+      const spouseEmail = (m.spouseEmail || '').trim().toLowerCase();
+      return loginEmail === lowerEmail || memberEmail === lowerEmail || spouseEmail === lowerEmail;
+    });
+    if (isActiveMember) return 'member';
+  } catch {
+    // If sheet read fails, fall through to null
+  }
+
+  // 4. Unknown user
+  return null;
 }
 
 export const authOptions: NextAuthOptions = {
@@ -33,7 +75,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user?.email) {
-        token.role = getUserRole(user.email);
+        token.role = await getUserRole(user.email);
       }
       return token;
     },
@@ -50,10 +92,14 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-export function canEdit(role: UserRole): boolean {
-  return role === 'admin' || role === 'treasurer';
+export function isAdmin(role: UserRole | null | undefined): boolean {
+  return role === 'admin';
 }
 
-export function isAdmin(role: UserRole): boolean {
-  return role === 'admin';
+export function isMember(role: UserRole | null | undefined): boolean {
+  return role === 'member';
+}
+
+export function isAuthorized(role: UserRole | null | undefined): boolean {
+  return role === 'admin' || role === 'member';
 }

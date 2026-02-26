@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions, canEdit } from './auth';
+import { authOptions, isAdmin } from './auth';
 import type { UserRole, ApiResponse } from '@/types';
 
 // ========================================
@@ -18,15 +18,15 @@ export function errorResponse(message: string, status = 400): NextResponse {
 }
 
 export async function getSessionRole(): Promise<{
-  role: UserRole;
+  role: UserRole | null;
   email: string;
   authenticated: boolean;
 }> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
-    return { role: 'viewer', email: '', authenticated: false };
+    return { role: null, email: '', authenticated: false };
   }
-  const role = (session.user as Record<string, unknown>).role as UserRole || 'viewer';
+  const role = (session.user as Record<string, unknown>).role as UserRole | null ?? null;
   return { role, email: session.user.email, authenticated: true };
 }
 
@@ -37,16 +37,25 @@ export async function requireAuth(): Promise<
   if (!authenticated) {
     return errorResponse('Unauthorized', 401);
   }
+  if (!role) {
+    return errorResponse('Forbidden: access denied', 403);
+  }
   return { role, email };
 }
 
-export async function requireEditor(): Promise<
+export async function requireAdmin(): Promise<
   { role: UserRole; email: string } | NextResponse
 > {
   const result = await requireAuth();
   if (result instanceof NextResponse) return result;
-  if (!canEdit(result.role)) {
+  if (!isAdmin(result.role)) {
     return errorResponse('Forbidden: insufficient permissions', 403);
   }
   return result;
+}
+
+export async function requireMember(): Promise<
+  { role: UserRole; email: string } | NextResponse
+> {
+  return requireAuth();
 }

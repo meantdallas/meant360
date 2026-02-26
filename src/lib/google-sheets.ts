@@ -59,12 +59,35 @@ export const SHEET_SCHEMAS: Record<string, string[]> = {
   ],
   [SHEET_TABS.EVENTS]: [
     'id', 'name', 'date', 'description', 'status', 'createdAt',
+    'parentEventId', 'pricingRules',
   ],
   [SHEET_TABS.MEMBERS]: [
     'id', 'name', 'address', 'email', 'phone',
     'spouseName', 'spouseEmail', 'spousePhone', 'children',
     'membershipType', 'membershipYears', 'registrationDate', 'renewalDate',
-    'status', 'notes', 'createdAt', 'updatedAt',
+    'status', 'notes', 'createdAt', 'updatedAt', 'loginEmail',
+  ],
+  [SHEET_TABS.GUESTS]: [
+    'id', 'name', 'email', 'phone', 'city', 'referredBy',
+    'eventsAttended', 'lastEventDate', 'createdAt', 'updatedAt',
+  ],
+  [SHEET_TABS.EVENT_REGISTRATIONS]: [
+    'id', 'eventId', 'type', 'memberId', 'guestId',
+    'name', 'email', 'phone', 'adults', 'kids', 'registeredAt',
+    'totalPrice', 'priceBreakdown',
+    'paymentStatus', 'paymentMethod', 'transactionId',
+  ],
+  [SHEET_TABS.EVENT_CHECKINS]: [
+    'id', 'eventId', 'type', 'memberId', 'guestId',
+    'name', 'email', 'phone', 'adults', 'kids', 'checkedInAt',
+    'totalPrice', 'priceBreakdown',
+    'paymentStatus', 'paymentMethod', 'transactionId',
+  ],
+  [SHEET_TABS.ADMINS]: [
+    'email', 'addedAt', 'addedBy', 'notes',
+  ],
+  [SHEET_TABS.SETTINGS]: [
+    'key', 'value', 'updatedAt', 'updatedBy',
   ],
 };
 
@@ -216,6 +239,46 @@ export async function getRowsByField(
   return rows.filter((row) => row[field] === value);
 }
 
+// --- Settings Helpers ---
+
+export async function getAllSettings(): Promise<Record<string, string>> {
+  const rows = await getRows(SHEET_TABS.SETTINGS);
+  const settings: Record<string, string> = {};
+  for (const row of rows) {
+    if (row.key) settings[row.key] = row.value || '';
+  }
+  return settings;
+}
+
+export async function upsertSetting(key: string, value: string, updatedBy: string): Promise<void> {
+  const sheets = getSheets();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: getSpreadsheetId(),
+    range: `${SHEET_TABS.SETTINGS}!A:Z`,
+  });
+
+  const rows = response.data.values;
+  const now = new Date().toISOString();
+
+  if (rows && rows.length > 1) {
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === key) {
+        // Update existing row
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: getSpreadsheetId(),
+          range: `${SHEET_TABS.SETTINGS}!A${i + 1}:D${i + 1}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [[key, value, now, updatedBy]] },
+        });
+        return;
+      }
+    }
+  }
+
+  // Append new row
+  await appendRow(SHEET_TABS.SETTINGS, { key, value, updatedAt: now, updatedBy });
+}
+
 // --- Setup: Create all tabs with headers ---
 
 export async function setupSpreadsheet(): Promise<void> {
@@ -249,22 +312,15 @@ export async function setupSpreadsheet(): Promise<void> {
     });
   }
 
-  // Add headers to each sheet
+  // Always overwrite headers to ensure new columns are added
   for (const [tabName, headers] of Object.entries(SHEET_SCHEMAS)) {
-    const response = await sheets.spreadsheets.values.get({
+    await sheets.spreadsheets.values.update({
       spreadsheetId: getSpreadsheetId(),
-      range: `${tabName}!1:1`,
+      range: `${tabName}!A1`,
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [headers],
+      },
     });
-
-    if (!response.data.values || response.data.values.length === 0) {
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: getSpreadsheetId(),
-        range: `${tabName}!A1`,
-        valueInputOption: 'RAW',
-        requestBody: {
-          values: [headers],
-        },
-      });
-    }
   }
 }

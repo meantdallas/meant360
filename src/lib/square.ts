@@ -89,6 +89,38 @@ export async function fetchSquareTransactions(
   return transactions;
 }
 
+export async function createSquarePayment(
+  sourceId: string,
+  amountCents: number,
+  currency: string,
+  note: string,
+): Promise<{ paymentId: string; status: string }> {
+  const client = getClient();
+  const locationId = process.env.SQUARE_LOCATION_ID;
+  if (!locationId) throw new Error('SQUARE_LOCATION_ID is not configured');
+
+  const idempotencyKey = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+  const response = await client.paymentsApi.createPayment({
+    sourceId,
+    idempotencyKey,
+    amountMoney: {
+      amount: BigInt(amountCents),
+      currency,
+    },
+    locationId,
+    note,
+  });
+
+  const payment = response.result.payment;
+  if (!payment?.id) throw new Error('Square payment failed: no payment ID returned');
+
+  return {
+    paymentId: payment.id,
+    status: payment.status || 'UNKNOWN',
+  };
+}
+
 export async function testSquareConnection(): Promise<boolean> {
   try {
     const client = getClient();

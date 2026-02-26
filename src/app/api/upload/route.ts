@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { uploadFile } from '@/lib/google-drive';
-import { jsonResponse, errorResponse, requireEditor } from '@/lib/api-helpers';
+import { jsonResponse, errorResponse, requireAdmin } from '@/lib/api-helpers';
 
 export async function POST(request: NextRequest) {
-  const auth = await requireEditor();
+  const auth = await requireAdmin();
   if (auth instanceof Response) return auth;
 
   try {

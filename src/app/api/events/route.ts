@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getRows, appendRow, getRowById, updateRow, deleteRow } from '@/lib/google-sheets';
-import { jsonResponse, errorResponse, requireAuth, requireEditor } from '@/lib/api-helpers';
+import { jsonResponse, errorResponse, requireAuth, requireAdmin } from '@/lib/api-helpers';
 import { generateId } from '@/lib/utils';
 import { SHEET_TABS } from '@/types';
 
@@ -20,7 +20,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireEditor();
+  const auth = await requireAdmin();
   if (auth instanceof Response) return auth;
 
   try {
@@ -33,6 +33,8 @@ export async function POST(request: NextRequest) {
       description: body.description || '',
       status: body.status || 'Upcoming',
       createdAt: now,
+      parentEventId: body.parentEventId || '',
+      pricingRules: body.pricingRules || '',
     };
 
     await appendRow(SHEET, record);
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireEditor();
+  const auth = await requireAdmin();
   if (auth instanceof Response) return auth;
 
   try {
@@ -64,7 +66,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await requireEditor();
+  const auth = await requireAdmin();
   if (auth instanceof Response) return auth;
 
   try {

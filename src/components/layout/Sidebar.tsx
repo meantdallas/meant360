@@ -21,17 +21,17 @@ import {
 } from 'react-icons/hi2';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HiOutlineHome },
-  { name: 'Income', href: '/income', icon: HiOutlineCurrencyDollar },
-  { name: 'Sponsorship', href: '/sponsorship', icon: HiOutlineHeart },
-  { name: 'Sponsors', href: '/sponsors', icon: HiOutlineBuildingOffice2 },
-  { name: 'Expenses', href: '/expenses', icon: HiOutlineDocumentText },
-  { name: 'Reimbursements', href: '/reimbursements', icon: HiOutlineReceiptRefund },
-  { name: 'Transactions', href: '/transactions', icon: HiOutlineArrowsRightLeft },
-  { name: 'Members', href: '/members', icon: HiOutlineUserGroup },
-  { name: 'Events', href: '/settings/events', icon: HiOutlineCalendarDays },
-  { name: 'Reports', href: '/reports', icon: HiOutlineChartBar },
-  { name: 'Settings', href: '/settings', icon: HiOutlineCog6Tooth },
+  { name: 'Dashboard', href: '/dashboard', icon: HiOutlineHome, adminOnly: true },
+  { name: 'Income', href: '/income', icon: HiOutlineCurrencyDollar, adminOnly: true },
+  { name: 'Sponsorship', href: '/sponsorship', icon: HiOutlineHeart, adminOnly: true },
+  { name: 'Sponsors', href: '/sponsors', icon: HiOutlineBuildingOffice2, adminOnly: true },
+  { name: 'Expenses', href: '/expenses', icon: HiOutlineDocumentText, adminOnly: true },
+  { name: 'Reimbursements', href: '/reimbursements', icon: HiOutlineReceiptRefund, adminOnly: true },
+  { name: 'Transactions', href: '/transactions', icon: HiOutlineArrowsRightLeft, adminOnly: true },
+  { name: 'Members', href: '/members', icon: HiOutlineUserGroup, adminOnly: false },
+  { name: 'Events', href: '/settings/events', icon: HiOutlineCalendarDays, adminOnly: false },
+  { name: 'Reports', href: '/reports', icon: HiOutlineChartBar, adminOnly: true },
+  { name: 'Settings', href: '/settings', icon: HiOutlineCog6Tooth, adminOnly: true },
 ];
 
 interface SidebarProps {
@@ -42,6 +42,7 @@ interface SidebarProps {
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const role = (session?.user as Record<string, unknown>)?.role as string;
 
   return (
     <>
@@ -79,7 +80,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navigation.map((item) => {
+          {navigation.filter((item) => !item.adminOnly || role === 'admin').map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
             return (
               <Link
@@ -122,7 +123,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                   {session.user.name}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
-                  {(session.user as Record<string, unknown>).role as string || 'viewer'}
+                  {role || 'unknown'}
                 </p>
               </div>
               <button

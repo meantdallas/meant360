@@ -3,9 +3,8 @@ import { getRows, appendRow, getRowById, updateRow, deleteRow } from '@/lib/goog
 import { jsonResponse, errorResponse, requireAuth, requireAdmin } from '@/lib/api-helpers';
 import { generateId } from '@/lib/utils';
 import { SHEET_TABS } from '@/types';
-import { deleteFile } from '@/lib/google-drive';
 
-const SHEET = SHEET_TABS.EXPENSES;
+const SHEET = SHEET_TABS.GUESTS;
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -13,22 +12,23 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const eventName = searchParams.get('event');
-    const category = searchParams.get('category');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search');
 
     let rows = await getRows(SHEET);
 
-    if (eventName) rows = rows.filter((r) => r.eventName === eventName);
-    if (category) rows = rows.filter((r) => r.category === category);
-    if (startDate) rows = rows.filter((r) => r.date >= startDate);
-    if (endDate) rows = rows.filter((r) => r.date <= endDate);
+    if (search) {
+      const q = search.toLowerCase();
+      rows = rows.filter(
+        (r) =>
+          r.name?.toLowerCase().includes(q) ||
+          r.email?.toLowerCase().includes(q),
+      );
+    }
 
     return jsonResponse(rows);
   } catch (error) {
-    console.error('GET /api/expenses error:', error);
-    return errorResponse('Failed to fetch expense records', 500);
+    console.error('GET /api/guests error:', error);
+    return errorResponse('Failed to fetch guests', 500);
   }
 }
 
@@ -41,16 +41,13 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
     const record = {
       id: generateId(),
-      expenseType: body.expenseType || 'General',
-      eventName: body.eventName || '',
-      category: body.category || 'Miscellaneous',
-      description: body.description || '',
-      amount: body.amount || 0,
-      date: body.date || now.split('T')[0],
-      paidBy: body.paidBy || 'Organization',
-      receiptUrl: body.receiptUrl || '',
-      receiptFileId: body.receiptFileId || '',
-      notes: body.notes || '',
+      name: body.name || '',
+      email: body.email || '',
+      phone: body.phone || '',
+      city: body.city || '',
+      referredBy: body.referredBy || '',
+      eventsAttended: body.eventsAttended || 0,
+      lastEventDate: body.lastEventDate || '',
       createdAt: now,
       updatedAt: now,
     };
@@ -58,8 +55,8 @@ export async function POST(request: NextRequest) {
     await appendRow(SHEET, record);
     return jsonResponse(record, 201);
   } catch (error) {
-    console.error('POST /api/expenses error:', error);
-    return errorResponse('Failed to create expense record', 500);
+    console.error('POST /api/guests error:', error);
+    return errorResponse('Failed to create guest', 500);
   }
 }
 
@@ -83,8 +80,8 @@ export async function PUT(request: NextRequest) {
     await updateRow(SHEET, existing.rowIndex, updated);
     return jsonResponse(updated);
   } catch (error) {
-    console.error('PUT /api/expenses error:', error);
-    return errorResponse('Failed to update expense record', 500);
+    console.error('PUT /api/guests error:', error);
+    return errorResponse('Failed to update guest', 500);
   }
 }
 
@@ -100,15 +97,10 @@ export async function DELETE(request: NextRequest) {
     const existing = await getRowById(SHEET, id);
     if (!existing) return errorResponse('Record not found', 404);
 
-    // Delete receipt from Drive if exists
-    if (existing.record.receiptFileId) {
-      await deleteFile(existing.record.receiptFileId);
-    }
-
     await deleteRow(SHEET, existing.rowIndex);
     return jsonResponse({ deleted: true });
   } catch (error) {
-    console.error('DELETE /api/expenses error:', error);
-    return errorResponse('Failed to delete expense record', 500);
+    console.error('DELETE /api/guests error:', error);
+    return errorResponse('Failed to delete guest', 500);
   }
 }

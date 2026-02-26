@@ -1,0 +1,401 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import QRCode from 'react-qr-code';
+import { parsePricingRules, formatPricingSummary } from '@/lib/pricing';
+import {
+  HiOutlineUserGroup,
+  HiOutlineCheckCircle,
+  HiOutlineIdentification,
+  HiOutlineTicket,
+  HiOutlineMagnifyingGlass,
+  HiOutlineXMark,
+  HiOutlineUserPlus,
+  HiOutlineCurrencyDollar,
+} from 'react-icons/hi2';
+
+interface SubEvent {
+  id: string;
+  name: string;
+  date: string;
+  status: string;
+  pricingRules: string;
+}
+
+interface EventData {
+  id: string;
+  name: string;
+  date: string;
+  description: string;
+  status: string;
+  parentEventId: string;
+  parentEventName: string;
+  pricingRules: string;
+  totalRegistrations: number;
+  totalCheckins: number;
+  memberCheckins: number;
+  guestCheckins: number;
+  subEvents: SubEvent[];
+  siblingEvents: SubEvent[];
+}
+
+interface SearchResult {
+  name: string;
+  email: string;
+  type: string;
+  source: string;
+}
+
+export default function EventLandingPage() {
+  const params = useParams();
+  const router = useRouter();
+  const eventId = params.eventId as string;
+
+  const [event, setEvent] = useState<EventData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  const fetchEvent = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/events/${eventId}`);
+      const json = await res.json();
+      if (json.success) {
+        setEvent(json.data);
+      } else {
+        setError('Event not found.');
+      }
+    } catch {
+      setError('Failed to load event.');
+    } finally {
+      setLoading(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => {
+    fetchEvent();
+    // Auto-refresh stats every 30 seconds
+    const interval = setInterval(fetchEvent, 30000);
+    return () => clearInterval(interval);
+  }, [fetchEvent]);
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query.trim() }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSearchResults(json.data);
+      }
+    } catch {
+      // Silently fail search
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSelectResult = (result: SearchResult) => {
+    router.push(`/events/${eventId}/checkin?email=${encodeURIComponent(result.email)}`);
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const checkinUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/events/${eventId}/checkin`
+    : '';
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-800 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !event) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-800 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl p-8 text-center max-w-sm w-full">
+          <p className="text-red-600 font-medium">{error || 'Event not found'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-800">
+      {/* Hero Section */}
+      <div className="pt-12 pb-8 px-4 text-center">
+        <div className="max-w-2xl mx-auto">
+          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-4 bg-white/20 text-white backdrop-blur-sm">
+            {event.status}
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
+            {event.name}
+          </h1>
+          <p className="text-lg text-indigo-200 mb-2">
+            {formatDate(event.date)}
+          </p>
+          {event.description && (
+            <p className="text-sm text-indigo-300 mt-3 max-w-md mx-auto">
+              {event.description}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      <div className="px-4 pb-8">
+        <div className="max-w-2xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: 'Registered', value: event.totalRegistrations, icon: HiOutlineTicket, color: 'bg-blue-500/20 text-blue-200' },
+            { label: 'Checked In', value: event.totalCheckins, icon: HiOutlineCheckCircle, color: 'bg-green-500/20 text-green-200' },
+            { label: 'Members', value: event.memberCheckins, icon: HiOutlineIdentification, color: 'bg-purple-500/20 text-purple-200' },
+            { label: 'Guests', value: event.guestCheckins, icon: HiOutlineUserGroup, color: 'bg-amber-500/20 text-amber-200' },
+          ].map((stat) => (
+            <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+              <stat.icon className={`w-6 h-6 mx-auto mb-1 ${stat.color.split(' ')[1]}`} />
+              <p className="text-2xl font-bold text-white">{stat.value}</p>
+              <p className="text-xs text-indigo-300">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="px-4 pb-12">
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* QR Code Section */}
+          <div className="bg-white rounded-2xl p-6 text-center shadow-xl">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Scan to Check In</h2>
+            <div className="bg-white p-4 rounded-xl inline-block border-2 border-gray-100">
+              {checkinUrl && <QRCode value={checkinUrl} size={200} />}
+            </div>
+            <p className="text-xs text-gray-400 mt-3">Point your camera at the QR code</p>
+          </div>
+
+          {/* Parent Event Breadcrumb */}
+          {event.parentEventId && event.parentEventName && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+              <p className="text-sm text-indigo-200">
+                Part of{' '}
+                <button
+                  onClick={() => router.push(`/events/${event.parentEventId}`)}
+                  className="text-white font-medium underline underline-offset-2 hover:text-indigo-100"
+                >
+                  {event.parentEventName}
+                </button>
+              </p>
+            </div>
+          )}
+
+          {/* Pricing Info */}
+          {(() => {
+            const rules = parsePricingRules(event.pricingRules);
+            if (!rules.enabled || rules.model === 'free') return null;
+            return (
+              <div className="bg-white rounded-2xl p-6 shadow-xl">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <HiOutlineCurrencyDollar className="w-5 h-5 text-green-600" />
+                  Pricing
+                </h2>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="bg-purple-50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-purple-600 font-medium">Member</p>
+                    <p className="text-lg font-bold text-purple-900">${rules.memberPrice}</p>
+                    <p className="text-xs text-purple-500">
+                      {rules.model === 'per_family' ? 'per family' : 'per adult'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-gray-600 font-medium">Guest</p>
+                    <p className="text-lg font-bold text-gray-900">${rules.guestPrice}</p>
+                    <p className="text-xs text-gray-500">
+                      {rules.model === 'per_family' ? 'per family' : 'per adult'}
+                    </p>
+                  </div>
+                </div>
+                {rules.kidPrice > 0 && (
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    Kids: ${rules.kidPrice} each
+                    {rules.kidsFreeUnderAge > 0 && ` (under ${rules.kidsFreeUnderAge} free)`}
+                  </p>
+                )}
+                {(rules.multiPersonDiscount.enabled || rules.siblingDiscount.enabled || rules.multiEventDiscount.enabled) && (
+                  <div className="mt-3 space-y-1">
+                    {rules.multiPersonDiscount.enabled && (
+                      <p className="text-xs text-green-600">
+                        {rules.multiPersonDiscount.type === 'percent'
+                          ? `${rules.multiPersonDiscount.value}% off`
+                          : `$${rules.multiPersonDiscount.value} off`}{' '}
+                        for {rules.multiPersonDiscount.minPeople}+ people
+                      </p>
+                    )}
+                    {rules.siblingDiscount.enabled && (
+                      <p className="text-xs text-green-600">
+                        Sibling discount for {rules.siblingDiscount.minKids}+ kids
+                      </p>
+                    )}
+                    {rules.multiEventDiscount.enabled && (
+                      <p className="text-xs text-green-600">
+                        Multi-event discount for {rules.multiEventDiscount.minEvents}+ events
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Sub-Events / Activities */}
+          {event.subEvents && event.subEvents.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 shadow-xl">
+              <h2 className="text-lg font-semibold text-gray-900 mb-3">Activities</h2>
+              <div className="space-y-2">
+                {event.subEvents.map((sub) => {
+                  const subRules = parsePricingRules(sub.pricingRules);
+                  return (
+                    <button
+                      key={sub.id}
+                      onClick={() => router.push(`/events/${sub.id}`)}
+                      className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-indigo-50 hover:border-indigo-200 transition-colors text-left"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">{sub.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {formatDate(sub.date)}
+                        </p>
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">
+                        {formatPricingSummary(subRules)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Tablet Check-In Section */}
+          <div className="bg-white rounded-2xl p-6 shadow-xl">
+            {!showSearch ? (
+              <div className="text-center">
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Tablet Check-In</h2>
+                <p className="text-sm text-gray-500 mb-4">Search by name to check in attendees</p>
+                <button
+                  onClick={() => setShowSearch(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+                >
+                  <HiOutlineMagnifyingGlass className="w-5 h-5" />
+                  Check In
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Find Attendee</h2>
+                  <button
+                    onClick={() => { setShowSearch(false); setSearchQuery(''); setSearchResults([]); }}
+                    className="p-1 text-gray-400 hover:text-gray-600"
+                  >
+                    <HiOutlineXMark className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="relative mb-4">
+                  <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Type a name to search..."
+                    autoFocus
+                  />
+                </div>
+
+                {searching && (
+                  <div className="text-center py-4">
+                    <div className="w-6 h-6 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                  </div>
+                )}
+
+                {searchResults.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {searchResults.map((result, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleSelectResult(result)}
+                        className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-indigo-50 hover:border-indigo-200 transition-colors text-left"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900 text-sm">{result.name}</p>
+                          <p className="text-xs text-gray-500">{result.email}</p>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          result.type === 'Member'
+                            ? 'bg-purple-100 text-purple-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {result.type}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-3">No results found</p>
+                )}
+
+                <button
+                  onClick={() => router.push(`/events/${eventId}/checkin`)}
+                  className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+                >
+                  <HiOutlineUserPlus className="w-4 h-4" />
+                  New Guest Check-In
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Register Link */}
+          <div className="text-center">
+            <button
+              onClick={() => router.push(`/events/${eventId}/register`)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm text-white rounded-xl font-medium hover:bg-white/20 transition-colors border border-white/20"
+            >
+              Register for this Event
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

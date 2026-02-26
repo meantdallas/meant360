@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PageHeader from '@/components/ui/PageHeader';
 import { useSession } from 'next-auth/react';
@@ -12,6 +12,8 @@ import {
   HiOutlineArrowPath,
   HiOutlineCheckCircle,
   HiOutlineXCircle,
+  HiOutlineGlobeAlt,
+  HiOutlineCreditCard,
 } from 'react-icons/hi2';
 
 export default function SettingsPage() {
@@ -20,6 +22,101 @@ export default function SettingsPage() {
   const [testingPayPal, setTestingPayPal] = useState(false);
   const [squareStatus, setSquareStatus] = useState<boolean | null>(null);
   const [paypalStatus, setPaypalStatus] = useState<boolean | null>(null);
+
+  // Social media links state
+  const [socialLinks, setSocialLinks] = useState({
+    instagram: '',
+    facebook: '',
+    linkedin: '',
+    youtube: '',
+  });
+  const [savingSocial, setSavingSocial] = useState(false);
+
+  // Fee settings state
+  const [feeSettings, setFeeSettings] = useState({
+    squareFeePercent: '',
+    squareFeeFixed: '',
+    paypalFeePercent: '',
+    paypalFeeFixed: '',
+  });
+  const [savingFees, setSavingFees] = useState(false);
+
+  // Load existing settings on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/settings');
+        const json = await res.json();
+        if (json.success && json.data) {
+          const s = json.data as Record<string, string>;
+          setSocialLinks({
+            instagram: s['social_instagram'] || '',
+            facebook: s['social_facebook'] || '',
+            linkedin: s['social_linkedin'] || '',
+            youtube: s['social_youtube'] || '',
+          });
+          setFeeSettings({
+            squareFeePercent: s['fee_square_percent'] || '',
+            squareFeeFixed: s['fee_square_fixed'] || '',
+            paypalFeePercent: s['fee_paypal_percent'] || '',
+            paypalFeeFixed: s['fee_paypal_fixed'] || '',
+          });
+        }
+      } catch {
+        // Settings may not exist yet
+      }
+    })();
+  }, []);
+
+  const saveSocialLinks = async () => {
+    setSavingSocial(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            social_instagram: socialLinks.instagram,
+            social_facebook: socialLinks.facebook,
+            social_linkedin: socialLinks.linkedin,
+            social_youtube: socialLinks.youtube,
+          },
+        }),
+      });
+      const json = await res.json();
+      if (json.success) toast.success('Social media links saved');
+      else toast.error(json.error || 'Failed to save');
+    } catch {
+      toast.error('Failed to save social media links');
+    } finally {
+      setSavingSocial(false);
+    }
+  };
+
+  const saveFeeSettings = async () => {
+    setSavingFees(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            fee_square_percent: feeSettings.squareFeePercent,
+            fee_square_fixed: feeSettings.squareFeeFixed,
+            fee_paypal_percent: feeSettings.paypalFeePercent,
+            fee_paypal_fixed: feeSettings.paypalFeeFixed,
+          },
+        }),
+      });
+      const json = await res.json();
+      if (json.success) toast.success('Credit card fee settings saved');
+      else toast.error(json.error || 'Failed to save');
+    } catch {
+      toast.error('Failed to save fee settings');
+    } finally {
+      setSavingFees(false);
+    }
+  };
 
   const testConnection = async (source: 'square' | 'paypal') => {
     const setTesting = source === 'square' ? setTestingSquare : setTestingPayPal;
@@ -89,6 +186,134 @@ export default function SettingsPage() {
           <Link href="/settings/events" className="btn-secondary inline-flex items-center gap-2">
             <HiOutlineCalendarDays className="w-4 h-4" /> Manage Events
           </Link>
+        </div>
+
+        {/* Social Media Links */}
+        <div className="card p-6">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <HiOutlineGlobeAlt className="w-5 h-5" /> Social Media Links
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            URLs shown as QR codes on the event home page so attendees can follow your accounts.
+          </p>
+          <div className="space-y-3">
+            <div>
+              <label className="label">Instagram URL</label>
+              <input
+                type="url"
+                value={socialLinks.instagram}
+                onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
+                className="input"
+                placeholder="https://instagram.com/yourorg"
+              />
+            </div>
+            <div>
+              <label className="label">Facebook URL</label>
+              <input
+                type="url"
+                value={socialLinks.facebook}
+                onChange={(e) => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
+                className="input"
+                placeholder="https://facebook.com/yourorg"
+              />
+            </div>
+            <div>
+              <label className="label">LinkedIn URL</label>
+              <input
+                type="url"
+                value={socialLinks.linkedin}
+                onChange={(e) => setSocialLinks({ ...socialLinks, linkedin: e.target.value })}
+                className="input"
+                placeholder="https://linkedin.com/company/yourorg"
+              />
+            </div>
+            <div>
+              <label className="label">YouTube URL</label>
+              <input
+                type="url"
+                value={socialLinks.youtube}
+                onChange={(e) => setSocialLinks({ ...socialLinks, youtube: e.target.value })}
+                className="input"
+                placeholder="https://youtube.com/@yourorg"
+              />
+            </div>
+            <button onClick={saveSocialLinks} disabled={savingSocial} className="btn-primary">
+              {savingSocial ? 'Saving...' : 'Save Social Links'}
+            </button>
+          </div>
+        </div>
+
+        {/* Credit Card Fees */}
+        <div className="card p-6">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <HiOutlineCreditCard className="w-5 h-5" /> Credit Card Processing Fees
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Set the processing fee rates per payment method. Fees are shown to the customer during payment so they cover the processing cost.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Square (Card)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Fee %</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={feeSettings.squareFeePercent}
+                    onChange={(e) => setFeeSettings({ ...feeSettings, squareFeePercent: e.target.value })}
+                    className="input"
+                    placeholder="2.9"
+                  />
+                </div>
+                <div>
+                  <label className="label">Fixed Fee ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={feeSettings.squareFeeFixed}
+                    onChange={(e) => setFeeSettings({ ...feeSettings, squareFeeFixed: e.target.value })}
+                    className="input"
+                    placeholder="0.30"
+                  />
+                </div>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">PayPal</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Fee %</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={feeSettings.paypalFeePercent}
+                    onChange={(e) => setFeeSettings({ ...feeSettings, paypalFeePercent: e.target.value })}
+                    className="input"
+                    placeholder="3.49"
+                  />
+                </div>
+                <div>
+                  <label className="label">Fixed Fee ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={feeSettings.paypalFeeFixed}
+                    onChange={(e) => setFeeSettings({ ...feeSettings, paypalFeeFixed: e.target.value })}
+                    className="input"
+                    placeholder="0.49"
+                  />
+                </div>
+              </div>
+            </div>
+            <button onClick={saveFeeSettings} disabled={savingFees} className="btn-primary">
+              {savingFees ? 'Saving...' : 'Save Fee Settings'}
+            </button>
+          </div>
         </div>
 
         {/* Integration Status */}
@@ -165,7 +390,7 @@ export default function SettingsPage() {
             All data is stored in Google Sheets. The following tabs are used:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-            {['Income', 'Sponsorship', 'Expenses', 'Reimbursements', 'Transactions', 'Events', 'Members'].map((tab) => (
+            {['Admins', 'Income', 'Sponsorship', 'Expenses', 'Reimbursements', 'Transactions', 'Events', 'Members', 'Settings'].map((tab) => (
               <div key={tab} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
                 <div className="w-2 h-2 bg-green-500 rounded-full" />
                 {tab}

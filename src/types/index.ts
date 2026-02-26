@@ -2,7 +2,7 @@
 // Core Type Definitions
 // ========================================
 
-export type UserRole = 'admin' | 'treasurer' | 'viewer';
+export type UserRole = 'admin' | 'member';
 
 export interface AppUser {
   email: string;
@@ -132,6 +132,24 @@ export interface Transaction {
   notes: string;
 }
 
+// --- Event Pricing ---
+export type PricingModel = 'per_family' | 'per_person' | 'free';
+
+export interface PricingRules {
+  enabled: boolean;
+  model: PricingModel;
+  memberPrice: number;
+  guestPrice: number;
+  kidPrice: number;
+  kidsFreeUnderAge: number;
+  multiPersonDiscount: { enabled: boolean; minPeople: number; type: 'flat' | 'percent'; value: number };
+  siblingDiscount: { enabled: boolean; minKids: number; type: 'flat' | 'percent'; value: number };
+  multiEventDiscount: { enabled: boolean; minEvents: number; type: 'flat' | 'percent'; value: number };
+}
+
+export interface PriceLineItem { label: string; amount: number; }
+export interface PriceBreakdown { lineItems: PriceLineItem[]; subtotal: number; discounts: PriceLineItem[]; total: number; }
+
 // --- Event ---
 export interface EventRecord {
   id: string;
@@ -140,6 +158,8 @@ export interface EventRecord {
   description: string;
   status: 'Upcoming' | 'Completed' | 'Cancelled';
   createdAt: string;
+  parentEventId: string;
+  pricingRules: string; // JSON string of PricingRules
 }
 
 // --- Member ---
@@ -169,6 +189,61 @@ export interface Member {
   notes: string;
   createdAt: string;
   updatedAt: string;
+  loginEmail: string;
+}
+
+// --- Guest ---
+export interface Guest {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  referredBy: string;
+  eventsAttended: number;
+  lastEventDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// --- Event Registration ---
+export interface EventRegistration {
+  id: string;
+  eventId: string;
+  type: 'Member' | 'Guest';
+  memberId: string;
+  guestId: string;
+  name: string;
+  email: string;
+  phone: string;
+  adults: number;
+  kids: number;
+  registeredAt: string;
+  totalPrice: string;
+  priceBreakdown: string; // JSON string of PriceBreakdown
+  paymentStatus: string; // '' | 'paid' | 'failed'
+  paymentMethod: string; // '' | 'square' | 'paypal'
+  transactionId: string; // external ID from Square/PayPal
+}
+
+// --- Event Check-in ---
+export interface EventCheckin {
+  id: string;
+  eventId: string;
+  type: 'Member' | 'Guest';
+  memberId: string;
+  guestId: string;
+  name: string;
+  email: string;
+  phone: string;
+  adults: number;
+  kids: number;
+  checkedInAt: string;
+  totalPrice: string;
+  priceBreakdown: string; // JSON string of PriceBreakdown
+  paymentStatus: string; // '' | 'paid' | 'failed'
+  paymentMethod: string; // '' | 'square' | 'paypal'
+  transactionId: string; // external ID from Square/PayPal
 }
 
 // --- Dashboard ---
@@ -206,6 +281,26 @@ export interface ApiResponse<T = unknown> {
   message?: string;
 }
 
+// --- Settings ---
+export interface FeeSettings {
+  squareFeePercent: number;
+  squareFeeFixed: number;
+  paypalFeePercent: number;
+  paypalFeeFixed: number;
+}
+
+export interface SocialLinks {
+  instagram: string;
+  facebook: string;
+  linkedin: string;
+  youtube: string;
+}
+
+export interface PublicSettings {
+  socialLinks: SocialLinks;
+  feeSettings: FeeSettings;
+}
+
 // --- Sheet Tab Names ---
 export const SHEET_TABS = {
   INCOME: 'Income',
@@ -216,4 +311,9 @@ export const SHEET_TABS = {
   TRANSACTIONS: 'Transactions',
   EVENTS: 'Events',
   MEMBERS: 'Members',
+  GUESTS: 'Guests',
+  EVENT_REGISTRATIONS: 'EventRegistrations',
+  EVENT_CHECKINS: 'EventCheckins',
+  ADMINS: 'Admins',
+  SETTINGS: 'Settings',
 } as const;

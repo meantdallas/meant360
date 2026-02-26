@@ -125,6 +125,69 @@ export async function fetchPayPalTransactions(
   return transactions;
 }
 
+export async function createPayPalOrder(
+  amount: string,
+  currency: string,
+  description: string,
+): Promise<{ orderId: string }> {
+  const accessToken = await getAccessToken();
+
+  const response = await fetch(`${PAYPAL_BASE_URL}/v2/checkout/orders`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      intent: 'CAPTURE',
+      purchase_units: [
+        {
+          amount: {
+            currency_code: currency,
+            value: amount,
+          },
+          description,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`PayPal create order failed: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return { orderId: data.id };
+}
+
+export async function capturePayPalOrder(
+  orderId: string,
+): Promise<{ transactionId: string; status: string }> {
+  const accessToken = await getAccessToken();
+
+  const response = await fetch(`${PAYPAL_BASE_URL}/v2/checkout/orders/${orderId}/capture`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`PayPal capture failed: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  const capture = data.purchase_units?.[0]?.payments?.captures?.[0];
+
+  return {
+    transactionId: capture?.id || data.id,
+    status: data.status || 'UNKNOWN',
+  };
+}
+
 export async function testPayPalConnection(): Promise<boolean> {
   try {
     await getAccessToken();

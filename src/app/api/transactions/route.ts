@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getRows, appendRow, getRowById, updateRow } from '@/lib/google-sheets';
-import { jsonResponse, errorResponse, requireAuth, requireEditor } from '@/lib/api-helpers';
+import { jsonResponse, errorResponse, requireAuth, requireAdmin } from '@/lib/api-helpers';
 import { SHEET_TABS } from '@/types';
 import { fetchSquareTransactions } from '@/lib/square';
 import { fetchPayPalTransactions } from '@/lib/paypal';
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
 // PUT to update a transaction's tag
 export async function PUT(request: NextRequest) {
-  const auth = await requireEditor();
+  const auth = await requireAdmin();
   if (auth instanceof Response) return auth;
 
   try {
@@ -55,7 +55,7 @@ export async function PUT(request: NextRequest) {
 
 // POST to sync transactions from Square/PayPal
 export async function POST(request: NextRequest) {
-  const auth = await requireEditor();
+  const auth = await requireAdmin();
   if (auth instanceof Response) return auth;
 
   try {
