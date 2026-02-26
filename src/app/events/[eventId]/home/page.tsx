@@ -219,7 +219,7 @@ export default function EventHomePage() {
 
           {/* Association name */}
           <motion.div variants={itemVariants} className="text-center mb-1">
-            <p className="text-xs md:text-sm text-white/50 font-medium uppercase tracking-widest">
+            <p className="text-xl md:text-2xl lg:text-3xl text-white/80 font-bold uppercase tracking-widest">
               Malayali Engineering Association (MEANT)
             </p>
           </motion.div>
@@ -253,7 +253,7 @@ export default function EventHomePage() {
             </motion.div>
 
             {/* Event name */}
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-2 drop-shadow-lg">
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-white leading-tight mb-2 drop-shadow-lg">
               {event.name}
             </h1>
 
