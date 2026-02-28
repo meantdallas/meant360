@@ -21,7 +21,7 @@ interface IncomeRecord {
   _source?: string;
 }
 
-const INCOME_TYPES = ['Membership', 'Guest Fee', 'Event Entry', 'Donation', 'Other'];
+const INCOME_TYPES = ['Membership', 'Guest Fee', 'Event Entry', 'Donation', 'Sponsorship', 'Previous Committee', 'Other'];
 const PAYMENT_METHODS = ['Cash', 'Check', 'Square', 'PayPal', 'Zelle', 'Bank Transfer', 'Other'];
 
 const emptyForm = {
@@ -145,15 +145,19 @@ export default function IncomePage() {
     switch (source) {
       case 'registration': return { text: 'Registration', cls: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' };
       case 'checkin': return { text: 'Check-in', cls: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' };
+      case 'sponsorship': return { text: 'Sponsorship', cls: 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300' };
       default: return { text: 'Manual', cls: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' };
     }
   };
 
   const columns: Column<IncomeRecord>[] = [
-    { key: 'date', header: 'Date', render: (item) => formatDate(item.date) },
+    { key: 'date', header: 'Date', sortable: true, render: (item) => formatDate(item.date) },
     {
       key: '_source',
       header: 'Source',
+      sortable: true,
+      filterable: true,
+      filterOptions: ['manual', 'registration', 'checkin', 'sponsorship'],
       render: (item) => {
         const badge = sourceLabel(item._source);
         return (
@@ -163,15 +167,17 @@ export default function IncomePage() {
         );
       },
     },
-    { key: 'incomeType', header: 'Type' },
-    { key: 'payerName', header: 'Payer' },
-    { key: 'eventName', header: 'Event' },
+    { key: 'incomeType', header: 'Type', sortable: true, filterable: true, filterOptions: INCOME_TYPES },
+    { key: 'payerName', header: 'Payer', sortable: true, filterable: true },
+    { key: 'eventName', header: 'Event', sortable: true, filterable: true },
     {
       key: 'amount',
       header: 'Amount',
+      sortable: true,
+      sortFn: (a, b) => parseFloat(a.amount || '0') - parseFloat(b.amount || '0'),
       render: (item) => formatCurrency(parseFloat(item.amount || '0')),
     },
-    { key: 'paymentMethod', header: 'Payment Method' },
+    { key: 'paymentMethod', header: 'Payment Method', sortable: true, filterable: true, filterOptions: PAYMENT_METHODS },
     ...(isAdmin ? [{
       key: 'actions' as const,
       header: '',

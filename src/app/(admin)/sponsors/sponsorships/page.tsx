@@ -155,14 +155,14 @@ export default function SponsorshipPage() {
   };
 
   const columns: Column<SponsorshipRecord>[] = [
-    { key: 'sponsorName', header: 'Sponsor' },
-    { key: 'year', header: 'Year' },
-    { key: 'type', header: 'Type' },
-    { key: 'eventName', header: 'Event' },
-    { key: 'amount', header: 'Amount', render: (item) => formatCurrency(parseFloat(item.amount || '0')) },
-    { key: 'paymentDate', header: 'Payment Date', render: (item) => formatDate(item.paymentDate) },
-    { key: 'paymentMethod', header: 'Method' },
-    { key: 'status', header: 'Status', render: (item) => <StatusBadge status={item.status} /> },
+    { key: 'sponsorName', header: 'Sponsor', sortable: true, filterable: true },
+    { key: 'year', header: 'Year', sortable: true },
+    { key: 'type', header: 'Type', sortable: true, filterable: true, filterOptions: ['Annual', 'Event'] },
+    { key: 'eventName', header: 'Event', sortable: true, filterable: true },
+    { key: 'amount', header: 'Amount', sortable: true, sortFn: (a, b) => parseFloat(a.amount || '0') - parseFloat(b.amount || '0'), render: (item) => formatCurrency(parseFloat(item.amount || '0')) },
+    { key: 'paymentDate', header: 'Payment Date', sortable: true, render: (item) => formatDate(item.paymentDate) },
+    { key: 'paymentMethod', header: 'Method', sortable: true, filterable: true, filterOptions: PAYMENT_METHODS },
+    { key: 'status', header: 'Status', sortable: true, filterable: true, filterOptions: ['Paid', 'Pending'], render: (item) => <StatusBadge status={item.status} /> },
     ...(isAdmin ? [{
       key: 'actions' as const, header: '',
       render: (item: SponsorshipRecord) => (

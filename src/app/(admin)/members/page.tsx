@@ -226,12 +226,14 @@ export default function MembersPage() {
   };
 
   const columns: Column<MemberRecord>[] = [
-    { key: 'name', header: 'Name' },
-    { key: 'email', header: 'Email' },
-    { key: 'phone', header: 'Phone' },
-    { key: 'membershipType', header: 'Type' },
-    { key: 'status', header: 'Status', render: (item) => <StatusBadge status={item.status} /> },
-    { key: 'renewalDate', header: 'Renewal Date', render: (item) => formatDate(item.renewalDate) },
+    { key: 'name', header: 'Name', sortable: true, filterable: true },
+    { key: 'email', header: 'Email', sortable: true, filterable: true },
+    { key: 'phone', header: 'Phone', sortable: true },
+    { key: 'spouseName', header: 'Spouse', sortable: true, filterable: true },
+    { key: 'spouseEmail', header: 'Spouse Email', sortable: true, filterable: true },
+    { key: 'membershipType', header: 'Type', sortable: true, filterable: true, filterOptions: ['Life Member', 'Yearly'] },
+    { key: 'status', header: 'Status', sortable: true, filterable: true, filterOptions: ['Active', 'Not Renewed', 'Expired'], render: (item) => <StatusBadge status={item.status} /> },
+    { key: 'renewalDate', header: 'Renewal Date', sortable: true, render: (item) => formatDate(item.renewalDate) },
     ...(isAdmin ? [{
       key: 'actions' as const,
       header: '',

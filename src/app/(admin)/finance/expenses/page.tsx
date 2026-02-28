@@ -172,12 +172,12 @@ export default function ExpensesPage() {
   };
 
   const columns: Column<ExpenseRecord>[] = [
-    { key: 'date', header: 'Date', render: (item) => formatDate(item.date) },
-    { key: 'category', header: 'Category' },
-    { key: 'description', header: 'Description' },
-    { key: 'eventName', header: 'Event' },
-    { key: 'amount', header: 'Amount', render: (item) => formatCurrency(parseFloat(item.amount || '0')) },
-    { key: 'paidBy', header: 'Paid By' },
+    { key: 'date', header: 'Date', sortable: true, render: (item) => formatDate(item.date) },
+    { key: 'category', header: 'Category', sortable: true, filterable: true, filterOptions: EXPENSE_CATEGORIES },
+    { key: 'description', header: 'Description', sortable: true, filterable: true },
+    { key: 'eventName', header: 'Event', sortable: true, filterable: true },
+    { key: 'amount', header: 'Amount', sortable: true, sortFn: (a, b) => parseFloat(a.amount || '0') - parseFloat(b.amount || '0'), render: (item) => formatCurrency(parseFloat(item.amount || '0')) },
+    { key: 'paidBy', header: 'Paid By', sortable: true, filterable: true },
     {
       key: 'receipt', header: 'Receipt',
       render: (item) =>

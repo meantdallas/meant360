@@ -138,9 +138,9 @@ export default function EventsPage() {
   });
 
   const columns: Column<EventRecord>[] = [
-    { key: 'name', header: 'Event Name' },
-    { key: 'date', header: 'Date', render: (item) => formatDate(item.date) },
-    { key: 'description', header: 'Description' },
+    { key: 'name', header: 'Event Name', sortable: true, filterable: true },
+    { key: 'date', header: 'Date', sortable: true, render: (item) => formatDate(item.date) },
+    { key: 'description', header: 'Description', sortable: true, filterable: true },
     {
       key: 'parentEventId', header: 'Parent',
       render: (item) => {
@@ -155,7 +155,7 @@ export default function EventsPage() {
         return <span className="text-xs text-gray-500 dark:text-gray-400">{formatPricingSummary(rules)}</span>;
       },
     },
-    { key: 'status', header: 'Status', render: (item) => {
+    { key: 'status', header: 'Status', sortable: true, filterable: true, filterOptions: ['Upcoming', 'Completed', 'Cancelled'], render: (item) => {
       const today = new Date().toISOString().split('T')[0];
       const displayStatus = item.status === 'Upcoming' && item.date === today ? 'Today' : item.status;
       return <StatusBadge status={displayStatus} />;

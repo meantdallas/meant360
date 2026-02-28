@@ -82,10 +82,10 @@ export default function EventDashboardPage() {
   }, [fetchStats]);
 
   const checkinColumns: Column<CheckinRecord>[] = [
-    { key: 'name', header: 'Name' },
-    { key: 'email', header: 'Email' },
-    { key: 'type', header: 'Type', render: (item) => <StatusBadge status={item.type} /> },
-    { key: 'totalPrice', header: 'Price', render: (item) => {
+    { key: 'name', header: 'Name', sortable: true, filterable: true },
+    { key: 'email', header: 'Email', sortable: true, filterable: true },
+    { key: 'type', header: 'Type', sortable: true, filterable: true, filterOptions: ['Member', 'Guest'], render: (item) => <StatusBadge status={item.type} /> },
+    { key: 'totalPrice', header: 'Price', sortable: true, sortFn: (a, b) => parseFloat(a.totalPrice || '0') - parseFloat(b.totalPrice || '0'), render: (item) => {
       const price = parseFloat(item.totalPrice || '0');
       return price > 0 ? <span className="text-sm">{formatCurrency(price)}</span> : <span className="text-xs text-gray-400 dark:text-gray-500">-</span>;
     }},
@@ -99,14 +99,14 @@ export default function EventDashboardPage() {
       }
       return <span className="text-xs text-gray-400 dark:text-gray-500">-</span>;
     }},
-    { key: 'checkedInAt', header: 'Checked In', render: (item) => formatDate(item.checkedInAt) },
+    { key: 'checkedInAt', header: 'Checked In', sortable: true, render: (item) => formatDate(item.checkedInAt) },
   ];
 
   const registrationColumns: Column<RegistrationRecord>[] = [
-    { key: 'name', header: 'Name' },
-    { key: 'email', header: 'Email' },
-    { key: 'type', header: 'Type', render: (item) => <StatusBadge status={item.type} /> },
-    { key: 'totalPrice', header: 'Price', render: (item) => {
+    { key: 'name', header: 'Name', sortable: true, filterable: true },
+    { key: 'email', header: 'Email', sortable: true, filterable: true },
+    { key: 'type', header: 'Type', sortable: true, filterable: true, filterOptions: ['Member', 'Guest'], render: (item) => <StatusBadge status={item.type} /> },
+    { key: 'totalPrice', header: 'Price', sortable: true, sortFn: (a, b) => parseFloat(a.totalPrice || '0') - parseFloat(b.totalPrice || '0'), render: (item) => {
       const price = parseFloat(item.totalPrice || '0');
       return price > 0 ? <span className="text-sm">{formatCurrency(price)}</span> : <span className="text-xs text-gray-400 dark:text-gray-500">-</span>;
     }},
@@ -120,7 +120,7 @@ export default function EventDashboardPage() {
       }
       return <span className="text-xs text-gray-400 dark:text-gray-500">-</span>;
     }},
-    { key: 'registeredAt', header: 'Registered', render: (item) => formatDate(item.registeredAt) },
+    { key: 'registeredAt', header: 'Registered', sortable: true, render: (item) => formatDate(item.registeredAt) },
   ];
 
   if (loading || !stats) {

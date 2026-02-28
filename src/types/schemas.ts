@@ -18,7 +18,7 @@ export const id = z.string().min(1, 'ID is required');
 // --- Income ---
 
 export const incomeCreateSchema = z.object({
-  incomeType: z.enum(['Membership', 'Guest Fee', 'Event Entry', 'Donation', 'Other']).default('Other'),
+  incomeType: z.enum(['Membership', 'Guest Fee', 'Event Entry', 'Donation', 'Sponsorship', 'Previous Committee', 'Other']).default('Other'),
   eventName: z.string().default(''),
   amount: amount,
   date: z.string().default(''),

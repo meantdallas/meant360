@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getRows } from '@/lib/google-sheets';
+import { getMultipleRows } from '@/lib/google-sheets';
 import { jsonResponse, errorResponse, requireAuth } from '@/lib/api-helpers';
 import { SHEET_TABS, type DashboardSummary, type EventSummary, type MonthlySummary } from '@/types';
 import { format, parseISO } from 'date-fns';
@@ -14,13 +14,17 @@ export async function GET(request: NextRequest) {
     const startDate = `${year}-01-01`;
     const endDate = `${year}-12-31`;
 
-    // Fetch all data in parallel
-    const [incomeRows, sponsorshipRows, expenseRows, reimbursementRows] = await Promise.all([
-      getRows(SHEET_TABS.INCOME),
-      getRows(SHEET_TABS.SPONSORSHIP),
-      getRows(SHEET_TABS.EXPENSES),
-      getRows(SHEET_TABS.REIMBURSEMENTS),
+    // Fetch all data in a single batchGet call
+    const sheetData = await getMultipleRows([
+      SHEET_TABS.INCOME,
+      SHEET_TABS.SPONSORSHIP,
+      SHEET_TABS.EXPENSES,
+      SHEET_TABS.REIMBURSEMENTS,
     ]);
+    const incomeRows = sheetData[SHEET_TABS.INCOME];
+    const sponsorshipRows = sheetData[SHEET_TABS.SPONSORSHIP];
+    const expenseRows = sheetData[SHEET_TABS.EXPENSES];
+    const reimbursementRows = sheetData[SHEET_TABS.REIMBURSEMENTS];
 
     // Filter by date range
     const income = incomeRows.filter((r) => r.date >= startDate && r.date <= endDate);
@@ -28,8 +32,13 @@ export async function GET(request: NextRequest) {
       (r) => r.paymentDate >= startDate && r.paymentDate <= endDate,
     );
     const expenses = expenseRows.filter((r) => r.date >= startDate && r.date <= endDate);
+    // All reimbursements created this year (any status)
     const reimbursements = reimbursementRows.filter(
-      (r) => r.createdAt >= startDate && r.status !== 'Reimbursed',
+      (r) => r.createdAt >= startDate && r.createdAt <= endDate,
+    );
+    // Reimbursements actually paid out this year (by reimbursedDate)
+    const reimbursedPaid = reimbursementRows.filter(
+      (r) => r.status === 'Reimbursed' && r.reimbursedDate >= startDate && r.reimbursedDate <= endDate,
     );
 
     // Totals
@@ -41,12 +50,15 @@ export async function GET(request: NextRequest) {
     const outstandingReimbursements = reimbursements
       .filter((r) => r.status === 'Pending' || r.status === 'Approved')
       .reduce((s, r) => s + parseFloat(r.amount || '0'), 0);
+    const totalReimbursed = reimbursedPaid
+      .reduce((s, r) => s + parseFloat(r.amount || '0'), 0);
 
     // Event summaries
     const eventNames = new Set<string>();
     income.forEach((r) => { if (r.eventName) eventNames.add(r.eventName); });
     sponsorship.forEach((r) => { if (r.eventName) eventNames.add(r.eventName); });
     expenses.forEach((r) => { if (r.eventName) eventNames.add(r.eventName); });
+    reimbursedPaid.forEach((r) => { if (r.eventName) eventNames.add(r.eventName); });
 
     const eventSummaries: EventSummary[] = Array.from(eventNames).map((eventName) => {
       const evtIncome = income
@@ -58,12 +70,16 @@ export async function GET(request: NextRequest) {
       const evtExpenses = expenses
         .filter((r) => r.eventName === eventName)
         .reduce((s, r) => s + parseFloat(r.amount || '0'), 0);
+      const evtReimbursements = reimbursedPaid
+        .filter((r) => r.eventName === eventName)
+        .reduce((s, r) => s + parseFloat(r.amount || '0'), 0);
       return {
         eventName,
         income: evtIncome,
         sponsorship: evtSponsorship,
         expenses: evtExpenses,
-        net: evtIncome + evtSponsorship - evtExpenses,
+        reimbursements: evtReimbursements,
+        net: evtIncome + evtSponsorship - evtExpenses - evtReimbursements,
       };
     });
 
@@ -82,13 +98,17 @@ export async function GET(request: NextRequest) {
       const mExpenses = expenses
         .filter((r) => r.date >= monthStart && r.date <= monthEnd)
         .reduce((s, r) => s + parseFloat(r.amount || '0'), 0);
+      const mReimbursements = reimbursedPaid
+        .filter((r) => r.reimbursedDate >= monthStart && r.reimbursedDate <= monthEnd)
+        .reduce((s, r) => s + parseFloat(r.amount || '0'), 0);
 
       return {
         month: format(new Date(year, i, 1), 'MMM'),
         income: mIncome,
         sponsorship: mSponsorship,
         expenses: mExpenses,
-        net: mIncome + mSponsorship - mExpenses,
+        reimbursements: mReimbursements,
+        net: mIncome + mSponsorship - mExpenses - mReimbursements,
       } as MonthlySummary;
     });
 
@@ -96,8 +116,9 @@ export async function GET(request: NextRequest) {
       totalIncome,
       totalSponsorship,
       totalExpenses,
-      netSurplus: totalIncome + totalSponsorship - totalExpenses,
+      netSurplus: totalIncome + totalSponsorship - totalExpenses - totalReimbursed,
       outstandingReimbursements,
+      totalReimbursed,
       eventSummaries,
       monthlySummary: months,
     };

@@ -3,7 +3,7 @@ import { jsonResponse, errorResponse, requireAuth, requireAdmin, validateBody } 
 import { incomeCreateSchema, incomeUpdateSchema } from '@/types/schemas';
 import { incomeService } from '@/services/finance.service';
 import { NotFoundError } from '@/services/crud.service';
-import { getRows } from '@/lib/google-sheets';
+import { getMultipleRows } from '@/lib/google-sheets';
 import { SHEET_TABS } from '@/types';
 
 interface IncomeRow {
@@ -29,13 +29,20 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    // Fetch manual income, event registrations, and event checkins in parallel
-    const [manualRows, registrations, checkins, events] = await Promise.all([
+    // Fetch manual income + all related sheets (batchGet = 1 API call for 4 sheets)
+    const [manualRows, sheetData] = await Promise.all([
       incomeService.list({ eventName: eventFilter }),
-      getRows(SHEET_TABS.EVENT_REGISTRATIONS),
-      getRows(SHEET_TABS.EVENT_CHECKINS),
-      getRows(SHEET_TABS.EVENTS),
+      getMultipleRows([
+        SHEET_TABS.EVENT_REGISTRATIONS,
+        SHEET_TABS.EVENT_CHECKINS,
+        SHEET_TABS.EVENTS,
+        SHEET_TABS.SPONSORSHIP,
+      ]),
     ]);
+    const registrations = sheetData[SHEET_TABS.EVENT_REGISTRATIONS];
+    const checkins = sheetData[SHEET_TABS.EVENT_CHECKINS];
+    const events = sheetData[SHEET_TABS.EVENTS];
+    const sponsorships = sheetData[SHEET_TABS.SPONSORSHIP];
 
     // Build event ID → name lookup
     const eventNameMap = new Map<string, string>();
@@ -76,8 +83,23 @@ export async function GET(request: NextRequest) {
         _source: 'checkin',
       }));
 
+    // Map sponsorships with status 'Paid' and amount > 0
+    const spIncome = sponsorships
+      .filter((r) => r.status === 'Paid' && parseFloat(r.amount || '0') > 0)
+      .map((r): IncomeRow => ({
+        id: `sp_${r.id}`,
+        incomeType: 'Sponsorship',
+        eventName: r.eventName || '',
+        amount: r.amount,
+        date: r.paymentDate || '',
+        paymentMethod: r.paymentMethod || '',
+        payerName: r.sponsorName || '',
+        notes: r.notes || '',
+        _source: 'sponsorship',
+      }));
+
     // Merge all sources
-    let combined = [...manual, ...regIncome, ...chkIncome];
+    let combined = [...manual, ...regIncome, ...chkIncome, ...spIncome];
 
     // Apply event filter to event-sourced rows too
     if (eventFilter) {

@@ -103,20 +103,25 @@ export default function TransactionsPage() {
   };
 
   const columns: Column<UnifiedRecord>[] = [
-    { key: 'date', header: 'Date', render: (item) => formatDate(item.date) },
+    { key: 'date', header: 'Date', sortable: true, render: (item) => formatDate(item.date) },
     {
       key: 'type',
       header: 'Type',
+      sortable: true,
+      filterable: true,
+      filterOptions: TYPE_OPTIONS,
       render: (item) => (
         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${typeBadge(item.type)}`}>
           {item.type}
         </span>
       ),
     },
-    { key: 'category', header: 'Category' },
+    { key: 'category', header: 'Category', sortable: true, filterable: true },
     {
       key: 'description',
       header: 'Description',
+      sortable: true,
+      filterable: true,
       render: (item) => (
         <span className="truncate max-w-[200px] block" title={item.description}>
           {item.description}
@@ -126,6 +131,12 @@ export default function TransactionsPage() {
     {
       key: 'amount',
       header: 'Amount',
+      sortable: true,
+      sortFn: (a, b) => {
+        const aAmt = typeof a.amount === 'number' ? a.amount : parseFloat(String(a.amount) || '0');
+        const bAmt = typeof b.amount === 'number' ? b.amount : parseFloat(String(b.amount) || '0');
+        return aAmt - bAmt;
+      },
       render: (item) => {
         const amt = typeof item.amount === 'number' ? item.amount : parseFloat(String(item.amount) || '0');
         const isPositive = amt >= 0;
@@ -136,11 +147,13 @@ export default function TransactionsPage() {
         );
       },
     },
-    { key: 'payerPayee', header: 'Payer / Payee' },
-    { key: 'eventName', header: 'Event' },
+    { key: 'payerPayee', header: 'Payer / Payee', sortable: true, filterable: true },
+    { key: 'eventName', header: 'Event', sortable: true, filterable: true },
     {
       key: 'source',
       header: 'Source',
+      sortable: true,
+      filterable: true,
       render: (item) => (
         <span className="text-xs text-gray-500 dark:text-gray-400">{item.source}</span>
       ),
@@ -148,6 +161,9 @@ export default function TransactionsPage() {
     {
       key: 'status',
       header: 'Status',
+      sortable: true,
+      filterable: true,
+      filterOptions: ['Pending', 'Approved', 'Reimbursed', 'Rejected'],
       render: (item) =>
         item.status ? (
           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${

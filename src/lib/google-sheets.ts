@@ -92,26 +92,83 @@ export const SHEET_SCHEMAS: Record<string, string[]> = {
   ],
 };
 
-// --- Core CRUD Operations ---
+// --- In-memory read cache (reduces Google Sheets API calls) ---
 
-export async function getRows(sheetName: string): Promise<Record<string, string>[]> {
-  const sheets = getSheets();
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: getSpreadsheetId(),
-    range: `${sheetName}!A:Z`,
-  });
+const CACHE_TTL_MS = 30_000; // 30 seconds
+const rowCache = new Map<string, { data: Record<string, string>[]; ts: number }>();
 
-  const rows = response.data.values;
-  if (!rows || rows.length <= 1) return [];
+export function invalidateCache(sheetName?: string) {
+  if (sheetName) {
+    rowCache.delete(sheetName);
+  } else {
+    rowCache.clear();
+  }
+}
 
-  const headers = rows[0];
-  return rows.slice(1).map((row) => {
+function parseRows(values: string[][] | null | undefined): Record<string, string>[] {
+  if (!values || values.length <= 1) return [];
+  const headers = values[0];
+  return values.slice(1).map((row) => {
     const record: Record<string, string> = {};
     headers.forEach((header, index) => {
       record[header] = row[index] || '';
     });
     return record;
   });
+}
+
+// --- Core CRUD Operations ---
+
+export async function getRows(sheetName: string): Promise<Record<string, string>[]> {
+  const cached = rowCache.get(sheetName);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  const sheets = getSheets();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: getSpreadsheetId(),
+    range: `${sheetName}!A:Z`,
+  });
+
+  const data = parseRows(response.data.values);
+  rowCache.set(sheetName, { data, ts: Date.now() });
+  return data;
+}
+
+/** Fetch multiple tabs in a single batchGet API call. */
+export async function getMultipleRows(
+  sheetNames: string[],
+): Promise<Record<string, Record<string, string>[]>> {
+  const now = Date.now();
+  const result: Record<string, Record<string, string>[]> = {};
+  const uncached: string[] = [];
+
+  for (const name of sheetNames) {
+    const cached = rowCache.get(name);
+    if (cached && now - cached.ts < CACHE_TTL_MS) {
+      result[name] = cached.data;
+    } else {
+      uncached.push(name);
+    }
+  }
+
+  if (uncached.length > 0) {
+    const sheets = getSheets();
+    const response = await sheets.spreadsheets.values.batchGet({
+      spreadsheetId: getSpreadsheetId(),
+      ranges: uncached.map((name) => `${name}!A:Z`),
+    });
+
+    const valueRanges = response.data.valueRanges || [];
+    for (let i = 0; i < uncached.length; i++) {
+      const data = parseRows(valueRanges[i]?.values);
+      rowCache.set(uncached[i], { data, ts: now });
+      result[uncached[i]] = data;
+    }
+  }
+
+  return result;
 }
 
 export async function getRowById(
@@ -159,6 +216,8 @@ export async function appendRow(
       values: [row],
     },
   });
+
+  invalidateCache(sheetName);
 }
 
 export async function updateRow(
@@ -181,6 +240,8 @@ export async function updateRow(
       values: [row],
     },
   });
+
+  invalidateCache(sheetName);
 }
 
 export async function deleteRow(sheetName: string, rowIndex: number): Promise<void> {
@@ -216,6 +277,8 @@ export async function deleteRow(sheetName: string, rowIndex: number): Promise<vo
       ],
     },
   });
+
+  invalidateCache(sheetName);
 }
 
 // --- Filtered Queries ---

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRows, appendRow, getRowById, updateRow } from '@/lib/google-sheets';
+import { getRows, getMultipleRows, appendRow, getRowById, updateRow } from '@/lib/google-sheets';
 import { jsonResponse, errorResponse, requireAuth, requireAdmin, validateBody } from '@/lib/api-helpers';
 import { SHEET_TABS } from '@/types';
 import { fetchSquareTransactions } from '@/lib/square';
@@ -45,17 +45,25 @@ async function getUnifiedLedger(
   endDate: string | null,
   typeFilter: string | null,
 ) {
-  // Fetch all sources in parallel
-  const [income, expenses, reimbursements, syncedTxns, registrations, checkins, events] =
-    await Promise.all([
-      getRows(SHEET_TABS.INCOME),
-      getRows(SHEET_TABS.EXPENSES),
-      getRows(SHEET_TABS.REIMBURSEMENTS),
-      getRows(SHEET),
-      getRows(SHEET_TABS.EVENT_REGISTRATIONS),
-      getRows(SHEET_TABS.EVENT_CHECKINS),
-      getRows(SHEET_TABS.EVENTS),
-    ]);
+  // Fetch all sources in a single batchGet call
+  const sheetData = await getMultipleRows([
+    SHEET_TABS.INCOME,
+    SHEET_TABS.EXPENSES,
+    SHEET_TABS.REIMBURSEMENTS,
+    SHEET,
+    SHEET_TABS.EVENT_REGISTRATIONS,
+    SHEET_TABS.EVENT_CHECKINS,
+    SHEET_TABS.EVENTS,
+    SHEET_TABS.SPONSORSHIP,
+  ]);
+  const income = sheetData[SHEET_TABS.INCOME];
+  const expenses = sheetData[SHEET_TABS.EXPENSES];
+  const reimbursements = sheetData[SHEET_TABS.REIMBURSEMENTS];
+  const syncedTxns = sheetData[SHEET];
+  const registrations = sheetData[SHEET_TABS.EVENT_REGISTRATIONS];
+  const checkins = sheetData[SHEET_TABS.EVENT_CHECKINS];
+  const events = sheetData[SHEET_TABS.EVENTS];
+  const sponsorships = sheetData[SHEET_TABS.SPONSORSHIP];
 
   // Build event ID → name lookup
   const eventNameMap = new Map<string, string>();
@@ -128,6 +136,25 @@ async function getUnifiedLedger(
       eventName: eventNameMap.get(r.eventId) || r.eventId,
       source: 'Check-in',
       paymentMethod: r.paymentMethod || '',
+    });
+  }
+
+  // Sponsorships → type "Income", positive amount
+  for (const r of sponsorships) {
+    const amt = parseFloat(r.amount || '0');
+    if (amt <= 0) continue;
+    unified.push({
+      id: `spon_${r.id}`,
+      date: r.paymentDate || '',
+      type: 'Income',
+      category: 'Sponsorship',
+      description: `${r.type || ''} sponsorship${r.notes ? ' - ' + r.notes : ''}`,
+      amount: amt,
+      payerPayee: r.sponsorName || '',
+      eventName: r.eventName || '',
+      source: 'Sponsorship',
+      paymentMethod: r.paymentMethod || '',
+      status: r.status || 'Pending',
     });
   }
 

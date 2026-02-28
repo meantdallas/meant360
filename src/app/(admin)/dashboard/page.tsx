@@ -57,25 +57,40 @@ export default function DashboardPage() {
   }, [fetchDashboard, fetchMembers]);
 
   const eventColumns: Column<EventSummary>[] = [
-    { key: 'eventName', header: 'Event' },
+    { key: 'eventName', header: 'Event', sortable: true, filterable: true },
     {
       key: 'income',
       header: 'Income',
+      sortable: true,
+      sortFn: (a, b) => a.income - b.income,
       render: (item) => formatCurrency(item.income),
     },
     {
       key: 'sponsorship',
       header: 'Sponsorship',
+      sortable: true,
+      sortFn: (a, b) => a.sponsorship - b.sponsorship,
       render: (item) => formatCurrency(item.sponsorship),
     },
     {
       key: 'expenses',
       header: 'Expenses',
+      sortable: true,
+      sortFn: (a, b) => a.expenses - b.expenses,
       render: (item) => formatCurrency(item.expenses),
+    },
+    {
+      key: 'reimbursements',
+      header: 'Reimbursed',
+      sortable: true,
+      sortFn: (a, b) => a.reimbursements - b.reimbursements,
+      render: (item) => item.reimbursements > 0 ? formatCurrency(item.reimbursements) : '—',
     },
     {
       key: 'net',
       header: 'Net',
+      sortable: true,
+      sortFn: (a, b) => a.net - b.net,
       render: (item) => (
         <span className={item.net >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
           {formatCurrency(item.net)}
@@ -132,9 +147,9 @@ export default function DashboardPage() {
               icon={<HiOutlineArrowTrendingUp className="w-6 h-6" />}
             />
             <StatCard
-              title="Outstanding Reimb."
-              value={formatCurrency(summary.outstandingReimbursements)}
-              trend={summary.outstandingReimbursements > 0 ? 'down' : 'neutral'}
+              title="Reimbursements"
+              value={formatCurrency(summary.totalReimbursed)}
+              subtitle={summary.outstandingReimbursements > 0 ? `${formatCurrency(summary.outstandingReimbursements)} outstanding` : undefined}
               icon={<HiOutlineReceiptRefund className="w-6 h-6" />}
             />
             <StatCard

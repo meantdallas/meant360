@@ -149,9 +149,9 @@ export default function SponsorsPage() {
   };
 
   const columns: Column<SponsorRecord>[] = [
-    { key: 'name', header: 'Name' },
-    { key: 'email', header: 'Email' },
-    { key: 'phone', header: 'Phone' },
+    { key: 'name', header: 'Name', sortable: true, filterable: true },
+    { key: 'email', header: 'Email', sortable: true, filterable: true },
+    { key: 'phone', header: 'Phone', sortable: true },
     {
       key: 'id',
       header: `Active ${currentYear}`,

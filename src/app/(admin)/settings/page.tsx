@@ -4,10 +4,8 @@ import { useState, useEffect } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
-import Link from 'next/link';
 import {
   HiOutlineCog6Tooth,
-  HiOutlineCalendarDays,
   HiOutlineArrowPath,
   HiOutlineCheckCircle,
   HiOutlineXCircle,
@@ -174,19 +172,6 @@ export default function SettingsPage() {
               <span className="font-medium capitalize">{role}</span>
             </div>
           </div>
-        </div>
-
-        {/* Events Link */}
-        <div className="card p-6">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <HiOutlineCalendarDays className="w-5 h-5" /> Events
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-            Manage your events used across income, expenses, and sponsorship records.
-          </p>
-          <Link href="/settings/events" className="btn-secondary inline-flex items-center gap-2">
-            <HiOutlineCalendarDays className="w-4 h-4" /> Manage Events
-          </Link>
         </div>
 
         {/* Social Media Links */}

@@ -48,6 +48,7 @@ export default function MonthlyChart({ data }: MonthlyChartProps) {
             <Bar dataKey="income" name="Income" fill="#3b82f6" radius={[2, 2, 0, 0]} />
             <Bar dataKey="sponsorship" name="Sponsorship" fill="#10b981" radius={[2, 2, 0, 0]} />
             <Bar dataKey="expenses" name="Expenses" fill="#ef4444" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="reimbursements" name="Reimbursements" fill="#f97316" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

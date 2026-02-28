@@ -253,6 +253,7 @@ export interface DashboardSummary {
   totalExpenses: number;
   netSurplus: number;
   outstandingReimbursements: number;
+  totalReimbursed: number;
   eventSummaries: EventSummary[];
   monthlySummary: MonthlySummary[];
 }
@@ -262,6 +263,7 @@ export interface EventSummary {
   income: number;
   sponsorship: number;
   expenses: number;
+  reimbursements: number;
   net: number;
 }
 
@@ -270,6 +272,7 @@ export interface MonthlySummary {
   income: number;
   sponsorship: number;
   expenses: number;
+  reimbursements: number;
   net: number;
 }
 

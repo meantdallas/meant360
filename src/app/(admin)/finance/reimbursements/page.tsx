@@ -135,12 +135,12 @@ export default function ReimbursementsPage() {
   };
 
   const columns: Column<ReimbursementRecord>[] = [
-    { key: 'requestedBy', header: 'Requested By' },
-    { key: 'description', header: 'Description' },
-    { key: 'eventName', header: 'Event' },
-    { key: 'category', header: 'Category' },
-    { key: 'amount', header: 'Amount', render: (item) => formatCurrency(parseFloat(item.amount || '0')) },
-    { key: 'status', header: 'Status', render: (item) => <StatusBadge status={item.status} /> },
+    { key: 'requestedBy', header: 'Requested By', sortable: true, filterable: true },
+    { key: 'description', header: 'Description', sortable: true, filterable: true },
+    { key: 'eventName', header: 'Event', sortable: true, filterable: true },
+    { key: 'category', header: 'Category', sortable: true, filterable: true, filterOptions: EXPENSE_CATEGORIES },
+    { key: 'amount', header: 'Amount', sortable: true, sortFn: (a, b) => parseFloat(a.amount || '0') - parseFloat(b.amount || '0'), render: (item) => formatCurrency(parseFloat(item.amount || '0')) },
+    { key: 'status', header: 'Status', sortable: true, filterable: true, filterOptions: ['Pending', 'Approved', 'Reimbursed', 'Rejected'], render: (item) => <StatusBadge status={item.status} /> },
     {
       key: 'receipt', header: 'Receipt',
       render: (item) =>
@@ -150,8 +150,8 @@ export default function ReimbursementsPage() {
           </a>
         ) : <span className="text-gray-500 dark:text-gray-400 text-xs">None</span>,
     },
-    { key: 'approvedDate', header: 'Approved', render: (item) => item.approvedDate ? formatDate(item.approvedDate) : '' },
-    { key: 'reimbursedDate', header: 'Reimbursed', render: (item) => item.reimbursedDate ? formatDate(item.reimbursedDate) : '' },
+    { key: 'approvedDate', header: 'Approved', sortable: true, render: (item) => item.approvedDate ? formatDate(item.approvedDate) : '' },
+    { key: 'reimbursedDate', header: 'Reimbursed', sortable: true, render: (item) => item.reimbursedDate ? formatDate(item.reimbursedDate) : '' },
     ...(isAdmin ? [{
       key: 'actions' as const, header: 'Actions',
       render: (item: ReimbursementRecord) => (

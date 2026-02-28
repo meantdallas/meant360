@@ -171,6 +171,7 @@ export async function handleAnnualReport(params: URLSearchParams, fmt: string): 
       income: mIncome,
       sponsorship: mSponsorship,
       expenses: mExpenses,
+      reimbursements: 0,
       net: mIncome + mSponsorship - mExpenses,
     };
   });
@@ -185,6 +186,7 @@ export async function handleAnnualReport(params: URLSearchParams, fmt: string): 
     income: yearIncome.filter((r) => r.eventName === eventName).reduce((s, r) => s + parseFloat(r.amount || '0'), 0),
     sponsorship: yearSponsorship.filter((r) => r.eventName === eventName).reduce((s, r) => s + parseFloat(r.amount || '0'), 0),
     expenses: yearExpenses.filter((r) => r.eventName === eventName).reduce((s, r) => s + parseFloat(r.amount || '0'), 0),
+    reimbursements: 0,
     net: 0,
   }));
   eventSummaries.forEach((e) => { e.net = e.income + e.sponsorship - e.expenses; });
