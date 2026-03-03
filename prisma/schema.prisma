@@ -473,3 +473,30 @@ model ActivityLog {
   @@index([timestamp])
   @@map("activity_log")
 }
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String   @default("")
+  subject   String   @default("")
+  body      String   @default("") @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("email_templates")
+}
+
+model SentEmail {
+  id       String   @id @default(cuid())
+  to       String   @default("")
+  subject  String   @default("")
+  body     String   @default("") @db.Text
+  provider String   @default("")
+  status   String   @default("")
+  error    String?  @db.Text
+  sentBy   String   @default("")
+  sentAt   DateTime @default(now())
+
+  @@index([provider])
+  @@index([sentAt])
+  @@map("sent_emails")
+}

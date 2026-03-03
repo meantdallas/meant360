@@ -335,6 +335,27 @@ export const memberProfileUpdateSchema = z.object({
   children: z.array(memberChildSchema).optional(),
 });
 
+// --- Email ---
+
+export const emailTemplateSchema = z.object({
+  name: z.string().min(1, 'Template name is required'),
+  subject: z.string().min(1, 'Subject is required'),
+  body: z.string().min(1, 'Body is required'),
+});
+
+export const emailTemplateUpdateSchema = z.object({
+  id: id,
+  name: z.string().min(1).optional(),
+  subject: z.string().min(1).optional(),
+  body: z.string().min(1).optional(),
+});
+
+export const sendEmailSchema = z.object({
+  to: z.array(z.string().email()).min(1, 'At least one recipient is required'),
+  subject: z.string().min(1, 'Subject is required'),
+  body: z.string().min(1, 'Body is required'),
+});
+
 // --- Settings ---
 
 export const settingsUpdateSchema = z.object({

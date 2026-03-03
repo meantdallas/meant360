@@ -21,6 +21,7 @@ import {
   HiOutlineXMark,
   HiOutlineUserCircle,
   HiOutlineUsers,
+  HiOutlineEnvelope,
 } from 'react-icons/hi2';
 
 const navigation = [
@@ -33,6 +34,7 @@ const navigation = [
   { name: 'Guests', href: '/guests', icon: HiOutlineUsers },
   { name: 'Events', href: '/event-management', icon: HiOutlineCalendarDays },
   { name: 'Reports', href: '/reports', icon: HiOutlineChartBar },
+  { name: 'Email', href: '/email/compose', icon: HiOutlineEnvelope },
   { name: 'Settings', href: '/settings', icon: HiOutlineCog6Tooth },
 ];
 
