@@ -283,7 +283,7 @@ export default function EventDashboardPage() {
         title={stats.event.name || 'Event Dashboard'}
         description={`${formatDate(stats.event.date)} — ${stats.event.status === 'Upcoming' && stats.event.date === new Date().toISOString().split('T')[0] ? 'Today' : stats.event.status}`}
         action={
-          <Link href="/settings/events" className="btn-secondary flex items-center gap-2" title="Back to Events">
+          <Link href="/event-management" className="btn-secondary flex items-center gap-2" title="Back to Events">
             <HiOutlineArrowLeft className="w-4 h-4" /> Back to Events
           </Link>
         }

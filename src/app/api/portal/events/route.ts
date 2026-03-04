@@ -2,6 +2,7 @@ import { jsonResponse, errorResponse, requireMember } from '@/lib/api-helpers';
 import { eventParticipantRepository, eventRepository } from '@/repositories';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
 export async function GET() {
   const auth = await requireMember();
   if (auth instanceof NextResponse) return auth;

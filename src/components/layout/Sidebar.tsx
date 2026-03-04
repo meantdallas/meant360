@@ -30,7 +30,7 @@ const navigation = [
   { name: 'Activity Log', href: '/finance/transactions', icon: HiOutlineClipboardDocumentList },
   { name: 'Members', href: '/members', icon: HiOutlineUserGroup },
   { name: 'Guests', href: '/guests', icon: HiOutlineUsers },
-  { name: 'Events', href: '/settings/events', icon: HiOutlineCalendarDays },
+  { name: 'Events', href: '/event-management', icon: HiOutlineCalendarDays },
   { name: 'Reports', href: '/reports', icon: HiOutlineChartBar },
   { name: 'Settings', href: '/settings', icon: HiOutlineCog6Tooth },
 ];

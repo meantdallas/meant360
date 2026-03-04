@@ -5,6 +5,7 @@ import { participantCreateSchema } from '@/types/schemas';
 import { checkinParticipant, updateParticipantPayment } from '@/services/events.service';
 import { logActivity } from '@/lib/audit-log';
 
+export const dynamic = 'force-dynamic';
 export async function GET(
   _request: NextRequest,
   { params }: { params: { eventId: string } },

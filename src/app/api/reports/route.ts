@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { errorResponse, requireAuth } from '@/lib/api-helpers';
 import { handleEventReport, handleMonthlyReport, handleAnnualReport } from '@/services/reports.service';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;

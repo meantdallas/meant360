@@ -4,6 +4,7 @@ import { settingsUpdateSchema } from '@/types/schemas';
 import { getSettings, upsertBulk } from '@/services/settings.service';
 import { logActivity } from '@/lib/audit-log';
 
+export const dynamic = 'force-dynamic';
 export async function GET() {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;

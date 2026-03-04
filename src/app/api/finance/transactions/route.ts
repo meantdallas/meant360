@@ -14,6 +14,7 @@ import { transactionSyncSchema, transactionUpdateSchema } from '@/types/schemas'
 import { logActivity } from '@/lib/audit-log';
 import { generateId } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;

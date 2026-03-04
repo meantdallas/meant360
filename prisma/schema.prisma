@@ -68,6 +68,7 @@ model Event {
   guestPolicy         Json?
   registrationOpen    String  @default("")
   createdAt           String  @default("")
+  updatedAt           String  @default("")
 
   participants EventParticipant[]
   income       Income[]

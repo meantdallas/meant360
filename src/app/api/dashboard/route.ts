@@ -4,6 +4,7 @@ import { jsonResponse, errorResponse, requireAuth } from '@/lib/api-helpers';
 import { type DashboardSummary, type EventSummary, type MonthlySummary } from '@/types';
 import { format } from 'date-fns';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;

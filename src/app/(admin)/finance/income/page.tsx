@@ -192,7 +192,7 @@ export default function IncomePage() {
         if (item.eventId) {
           return (
             <Link
-              href={`/settings/events/${item.eventId}`}
+              href={`/event-management/${item.eventId}`}
               className="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline"
               title="Open Event Dashboard"
             >

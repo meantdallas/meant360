@@ -189,7 +189,7 @@ export default function EventsPage() {
           <a href={`/events/${item.id}/checkin`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 rounded" title="Check-in Page">
             <HiOutlineCheckCircle className="w-4 h-4" />
           </a>
-          <Link href={`/settings/events/${item.id}`} onClick={(e) => e.stopPropagation()} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 rounded" title="Event Dashboard">
+          <Link href={`/event-management/${item.id}`} onClick={(e) => e.stopPropagation()} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 rounded" title="Event Dashboard">
             <HiOutlineChartBarSquare className="w-4 h-4" />
           </Link>
           {isAdmin && (
