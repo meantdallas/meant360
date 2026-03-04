@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { activityLogRepository } from '@/repositories';
 import { jsonResponse, errorResponse, requireAuth } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;

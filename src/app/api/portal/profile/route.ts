@@ -3,6 +3,7 @@ import { jsonResponse, errorResponse, requireMember, validateBody } from '@/lib/
 import { memberRepository } from '@/repositories';
 import { memberProfileUpdateSchema } from '@/types/schemas';
 
+export const dynamic = 'force-dynamic';
 export async function GET() {
   const auth = await requireMember();
   if (auth instanceof NextResponse) return auth;

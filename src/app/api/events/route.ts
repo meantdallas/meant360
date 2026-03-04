@@ -4,6 +4,7 @@ import { eventCreateSchema, eventUpdateSchema } from '@/types/schemas';
 import { eventService } from '@/services/events.service';
 import { NotFoundError } from '@/services/crud.service';
 
+export const dynamic = 'force-dynamic';
 export async function GET() {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;

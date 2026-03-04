@@ -3,6 +3,7 @@ import { jsonResponse, errorResponse, requireAuth } from '@/lib/api-helpers';
 import { getStats } from '@/services/events.service';
 import { NotFoundError } from '@/services/crud.service';
 
+export const dynamic = 'force-dynamic';
 export async function GET(
   _request: NextRequest,
   { params }: { params: { eventId: string } },

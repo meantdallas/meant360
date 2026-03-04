@@ -6,6 +6,7 @@ import { getMultipleRows } from '@/lib/google-sheets';
 import { SHEET_TABS } from '@/types';
 import { NotFoundError } from '@/services/crud.service';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;

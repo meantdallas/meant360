@@ -91,8 +91,9 @@ export async function handleEventReport(params: URLSearchParams, fmt: string): P
   const eventDate = eventRows.find((e) => e.name === eventName)?.date || '';
 
   // Participation Income = manual income for event + paid participant registrations
+  // Exclude auto-created income entries (from registration/check-in payments) to avoid double-counting
   const manualIncome = incomeRows
-    .filter((r) => r.eventName === eventName)
+    .filter((r) => r.eventName === eventName && !(r.notes || '').toLowerCase().includes('auto-created from'))
     .reduce((s, r) => s + parseFloat(r.amount || '0'), 0);
   const participantIncome = sumParticipantIncome(participantRows, { eventIds });
   const participationIncome = manualIncome + participantIncome;
@@ -132,7 +133,7 @@ export async function handleMonthlyReport(params: URLSearchParams, fmt: string):
   ]);
 
   const manualIncome = incomeRows
-    .filter((r) => r.date >= startDate && r.date <= endDate)
+    .filter((r) => r.date >= startDate && r.date <= endDate && !(r.notes || '').toLowerCase().includes('auto-created from'))
     .reduce((s, r) => s + parseFloat(r.amount || '0'), 0);
   const participantIncome = sumParticipantIncome(participantRows, { startDate, endDate });
   const participationIncome = manualIncome + participantIncome;
@@ -182,7 +183,8 @@ export async function handleAnnualReport(params: URLSearchParams, fmt: string): 
   const participants = participantRows;
   const events = eventRows;
 
-  const yearIncome = income.filter((r) => r.date >= startDate && r.date <= endDate);
+  // Exclude auto-created income entries to avoid double-counting with participant income
+  const yearIncome = income.filter((r) => r.date >= startDate && r.date <= endDate && !(r.notes || '').toLowerCase().includes('auto-created from'));
   const yearSponsors = sponsors.filter(
     (r) => r.paymentDate >= startDate && r.paymentDate <= endDate && r.status === 'Paid',
   );

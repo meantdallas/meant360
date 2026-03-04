@@ -5,6 +5,7 @@ import { expenseService, updateExpenseReimbursementStatus } from '@/services/fin
 import { NotFoundError } from '@/services/crud.service';
 import { logActivity } from '@/lib/audit-log';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;

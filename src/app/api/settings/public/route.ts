@@ -1,6 +1,7 @@
 import { jsonResponse, errorResponse } from '@/lib/api-helpers';
 import { getPublicSettings } from '@/services/settings.service';
 
+export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const publicSettings = await getPublicSettings();

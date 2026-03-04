@@ -321,9 +321,19 @@ export default function RegisterPage() {
           setActPricingMode(parseActivityPricingMode(json.data.activityPricingMode || ''));
           setGuestPolicy(parseGuestPolicy(json.data.guestPolicy || ''));
 
+          if (json.data.status === 'Completed' || json.data.status === 'Cancelled') {
+            setErrorMsg(json.data.status === 'Cancelled' ? 'This event has been cancelled.' : 'This event has ended.');
+            setStep('error');
+            return;
+          }
+
           if (json.data.date) {
-            const today = new Date().toISOString().split('T')[0];
-            if (today > json.data.date) {
+            const now = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const eventDate = new Date(json.data.date + 'T00:00:00');
+            eventDate.setDate(eventDate.getDate() + 1);
+            const cutoff = `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}-${String(eventDate.getDate()).padStart(2, '0')}`;
+            if (today > cutoff) {
               setErrorMsg('This event has ended.');
               setStep('error');
               return;

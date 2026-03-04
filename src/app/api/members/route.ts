@@ -4,6 +4,7 @@ import { memberCreateSchema, memberUpdateSchema } from '@/types/schemas';
 import { memberService, searchMembers } from '@/services/members.service';
 import { NotFoundError } from '@/services/crud.service';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;
