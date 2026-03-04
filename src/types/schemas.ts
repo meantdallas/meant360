@@ -208,6 +208,7 @@ export const eventCreateSchema = z.object({
   date: z.string().default(''),
   description: z.string().default(''),
   status: z.enum(['Upcoming', 'Completed', 'Cancelled']).default('Upcoming'),
+  category: z.string().default(''),
   pricingRules: z.string().default(''),
   formConfig: z.string().default(''),
   activities: z.string().default(''),
@@ -354,6 +355,7 @@ export const sendEmailSchema = z.object({
   to: z.array(z.string().email()).min(1, 'At least one recipient is required'),
   subject: z.string().min(1, 'Subject is required'),
   body: z.string().min(1, 'Body is required'),
+  from: z.string().email().optional(),
 });
 
 // --- Settings ---

@@ -36,6 +36,7 @@ interface EventRecord {
   date: string;
   description: string;
   status: string;
+  category: string;
   pricingRules: string;
   formConfig: string;
   activities: string;
@@ -44,11 +45,17 @@ interface EventRecord {
   registrationOpen: string;
 }
 
+interface EmailCategory {
+  name: string;
+  email: string;
+}
+
 const emptyForm = {
   name: '',
   date: new Date().toISOString().split('T')[0],
   description: '',
   status: 'Upcoming' as 'Upcoming' | 'Completed' | 'Cancelled',
+  category: '',
   registrationOpen: 'true',
 };
 
@@ -69,6 +76,7 @@ export default function EventsPage() {
   const [actPricingMode, setActPricingMode] = useState<ActivityPricingMode>('flat');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [emailCategories, setEmailCategories] = useState<EmailCategory[]>([]);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -85,6 +93,16 @@ export default function EventsPage() {
 
   useEffect(() => {
     fetchRecords();
+    (async () => {
+      try {
+        const res = await fetch('/api/settings');
+        const json = await res.json();
+        if (json.success && json.data) {
+          const cats = JSON.parse(json.data['email_categories'] || '[]');
+          if (Array.isArray(cats)) setEmailCategories(cats);
+        }
+      } catch { /* ignore */ }
+    })();
   }, [fetchRecords]);
 
   const toggleSection = (key: string) => {
@@ -110,6 +128,7 @@ export default function EventsPage() {
       date: record.date,
       description: record.description,
       status: record.status as 'Upcoming' | 'Completed' | 'Cancelled',
+      category: record.category || '',
       registrationOpen: record.registrationOpen?.toLowerCase() === 'true' ? 'true' : '',
     });
     setPricing(parsePricingRules(record.pricingRules));
@@ -246,6 +265,15 @@ export default function EventsPage() {
                 <option value="Upcoming">Upcoming</option>
                 <option value="Completed">Completed</option>
                 <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Category</label>
+              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="select">
+                <option value="">None</option>
+                {emailCategories.map((cat) => (
+                  <option key={cat.name} value={cat.name}>{cat.name}</option>
+                ))}
               </select>
             </div>
           </div>

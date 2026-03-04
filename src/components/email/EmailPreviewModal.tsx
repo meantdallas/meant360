@@ -7,6 +7,7 @@ interface EmailPreviewModalProps {
   onClose: () => void;
   onSend: () => void;
   sending: boolean;
+  from?: string;
   to: string[];
   subject: string;
   body: string;
@@ -17,6 +18,7 @@ export default function EmailPreviewModal({
   onClose,
   onSend,
   sending,
+  from,
   to,
   subject,
   body,
@@ -24,6 +26,12 @@ export default function EmailPreviewModal({
   return (
     <Modal open={open} onClose={onClose} title="Preview Email" size="lg">
       <div className="space-y-4">
+        {from && (
+          <div>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">From</p>
+            <p className="text-sm text-gray-900 dark:text-gray-100">{from}</p>
+          </div>
+        )}
         <div>
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">To</p>
           <p className="text-sm text-gray-900 dark:text-gray-100">{to.join(', ')}</p>

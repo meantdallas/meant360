@@ -281,6 +281,7 @@ model Event {
   date                String  @default("")
   description         String  @default("")
   status              String  @default("Upcoming")
+  category            String  @default("")
   parentEventId       String  @default("")
   pricingRules        Json?
   formConfig          Json?

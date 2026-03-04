@@ -1,18 +1,27 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { HiOutlineXMark } from 'react-icons/hi2';
 
 interface Recipient {
   email: string;
   name: string;
   type: 'member' | 'guest';
+  status: 'active' | 'inactive' | 'guest';
+}
+
+interface EventOption {
+  id: string;
+  name: string;
+  date: string;
 }
 
 interface RecipientInputProps {
   value: string[];
   onChange: (emails: string[]) => void;
 }
+
+type GroupKey = 'active' | 'inactive' | 'guests' | 'all' | 'eventGuests';
 
 export default function RecipientInput({ value, onChange }: RecipientInputProps) {
   const [input, setInput] = useState('');
@@ -23,6 +32,11 @@ export default function RecipientInput({ value, onChange }: RecipientInputProps)
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Event-based selection
+  const [events, setEvents] = useState<EventOption[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState('');
+  const [eventRecipients, setEventRecipients] = useState<Recipient[]>([]);
+
   const fetchRecipients = useCallback(async () => {
     try {
       const res = await fetch('/api/email/recipients');
@@ -31,7 +45,69 @@ export default function RecipientInput({ value, onChange }: RecipientInputProps)
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => { fetchRecipients(); }, [fetchRecipients]);
+  const fetchEvents = useCallback(async () => {
+    try {
+      const res = await fetch('/api/events');
+      const json = await res.json();
+      if (json.success) setEvents(json.data);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    fetchRecipients();
+    fetchEvents();
+  }, [fetchRecipients, fetchEvents]);
+
+  // Fetch event participants when an event is selected
+  useEffect(() => {
+    if (!selectedEventId) {
+      setEventRecipients([]);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch(`/api/email/recipients?eventId=${selectedEventId}`);
+        const json = await res.json();
+        if (json.success) setEventRecipients(json.data);
+      } catch { /* ignore */ }
+    })();
+  }, [selectedEventId]);
+
+  // Group emails by status
+  const groups = useMemo(() => {
+    const active = allRecipients.filter((r) => r.status === 'active').map((r) => r.email.toLowerCase());
+    const inactive = allRecipients.filter((r) => r.status === 'inactive').map((r) => r.email.toLowerCase());
+    const guests = allRecipients.filter((r) => r.status === 'guest').map((r) => r.email.toLowerCase());
+    const all = allRecipients.map((r) => r.email.toLowerCase());
+    const eventGuests = eventRecipients.filter((r) => r.type === 'guest').map((r) => r.email.toLowerCase());
+    return { active, inactive, guests, all, eventGuests };
+  }, [allRecipients, eventRecipients]);
+
+  // Check if a group is fully selected
+  const isGroupSelected = useCallback((key: GroupKey) => {
+    const groupEmails = groups[key];
+    if (groupEmails.length === 0) return false;
+    const valueSet = new Set(value.map((e) => e.toLowerCase()));
+    return groupEmails.every((e) => valueSet.has(e));
+  }, [groups, value]);
+
+  const toggleGroup = (key: GroupKey) => {
+    const groupEmails = groups[key];
+    if (isGroupSelected(key)) {
+      const removeSet = new Set(groupEmails);
+      onChange(value.filter((e) => !removeSet.has(e.toLowerCase())));
+    } else {
+      const valueSet = new Set(value.map((e) => e.toLowerCase()));
+      const toAdd = groupEmails.filter((e) => !valueSet.has(e));
+      onChange([...value, ...toAdd]);
+    }
+  };
+
+  // When an event is selected, suggestions show only that event's guests.
+  // Otherwise, suggestions show all recipients.
+  const suggestionPool = selectedEventId
+    ? eventRecipients.filter((r) => r.type === 'guest')
+    : allRecipients;
 
   useEffect(() => {
     if (!input.trim()) {
@@ -39,14 +115,14 @@ export default function RecipientInput({ value, onChange }: RecipientInputProps)
       return;
     }
     const lower = input.toLowerCase();
-    const filtered = allRecipients.filter(
+    const filtered = suggestionPool.filter(
       (r) =>
         !value.includes(r.email) &&
         (r.email.toLowerCase().includes(lower) || r.name.toLowerCase().includes(lower)),
     );
     setSuggestions(filtered.slice(0, 10));
     setHighlightIndex(-1);
-  }, [input, allRecipients, value]);
+  }, [input, suggestionPool, value]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -93,8 +169,73 @@ export default function RecipientInput({ value, onChange }: RecipientInputProps)
     }
   };
 
+  const quickSelectButtons: { key: GroupKey; label: string; count: number }[] = [
+    { key: 'active', label: 'Active Members', count: groups.active.length },
+    { key: 'inactive', label: 'Inactive Members', count: groups.inactive.length },
+    { key: 'guests', label: 'All Guests', count: groups.guests.length },
+    { key: 'all', label: 'All', count: groups.all.length },
+  ];
+
+  const eventButtons: { key: GroupKey; label: string; count: number }[] = selectedEventId
+    ? [
+        { key: 'eventGuests', label: 'Event Guests', count: groups.eventGuests.length },
+      ]
+    : [];
+
+  const renderPillButton = ({ key, label, count }: { key: GroupKey; label: string; count: number }) => {
+    if (count === 0) return null;
+    const selected = isGroupSelected(key);
+    return (
+      <button
+        key={key}
+        type="button"
+        onClick={() => toggleGroup(key)}
+        className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
+          selected
+            ? 'bg-primary-600 text-white border-primary-600'
+            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-primary-400'
+        }`}
+      >
+        {label}
+        <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs rounded-full ${
+          selected
+            ? 'bg-white/20 text-white'
+            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+        }`}>
+          {count}
+        </span>
+      </button>
+    );
+  };
+
   return (
     <div ref={containerRef} className="relative">
+      {/* Quick-select buttons */}
+      {allRecipients.length > 0 && (
+        <div className="space-y-2 mb-2">
+          <div className="flex flex-wrap gap-2">
+            {quickSelectButtons.map(renderPillButton)}
+          </div>
+
+          {/* Event-based selection */}
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={selectedEventId}
+              onChange={(e) => setSelectedEventId(e.target.value)}
+              className="text-xs border border-gray-300 dark:border-gray-600 rounded-full px-3 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+            >
+              <option value="">Select event...</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name}{ev.date ? ` (${ev.date})` : ''}
+                </option>
+              ))}
+            </select>
+            {eventButtons.map(renderPillButton)}
+          </div>
+        </div>
+      )}
+
       <div
         className="flex flex-wrap gap-1.5 items-center p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 min-h-[42px] cursor-text"
         onClick={() => inputRef.current?.focus()}

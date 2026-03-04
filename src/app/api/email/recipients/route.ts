@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server';
 import { jsonResponse, errorResponse, requireAuth } from '@/lib/api-helpers';
-import { memberRepository, memberSpouseRepository, guestRepository } from '@/repositories';
+import { memberRepository, memberSpouseRepository, guestRepository, eventParticipantRepository } from '@/repositories';
 
 interface Recipient {
   email: string;
   name: string;
   type: 'member' | 'guest';
+  status: 'active' | 'inactive' | 'guest';
 }
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,33 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'all';
+    const eventId = searchParams.get('eventId');
+
+    // If eventId provided, return participants from that event
+    if (eventId) {
+      const participants = await eventParticipantRepository.findByEventId(eventId);
+      const eventRecipients: Recipient[] = [];
+      for (const p of participants) {
+        if (p.email) {
+          const isGuest = p.type === 'Guest' || !!p.guestId;
+          eventRecipients.push({
+            email: p.email,
+            name: p.name || p.email,
+            type: isGuest ? 'guest' : 'member',
+            status: isGuest ? 'guest' : 'active',
+          });
+        }
+      }
+      // Deduplicate
+      const seen = new Set<string>();
+      const unique = eventRecipients.filter((r) => {
+        const lower = r.email.toLowerCase();
+        if (seen.has(lower)) return false;
+        seen.add(lower);
+        return true;
+      });
+      return jsonResponse(unique);
+    }
 
     const recipients: Recipient[] = [];
 
@@ -25,20 +53,33 @@ export async function GET(request: NextRequest) {
         memberSpouseRepository.findAll(),
       ]);
 
-      // Build memberId -> member name map for spouse name fallback
-      const memberNameMap = new Map<string, string>();
+      // Build memberId -> member status map for spouse status inheritance
+      const memberStatusMap = new Map<string, string>();
       for (const m of members) {
+        memberStatusMap.set(m.id, m.status || 'Active');
         if (m.email) {
-          recipients.push({ email: m.email, name: m.name || m.email, type: 'member' });
+          const isActive = m.status === 'Active';
+          recipients.push({
+            email: m.email,
+            name: m.name || m.email,
+            type: 'member',
+            status: isActive ? 'active' : 'inactive',
+          });
         }
-        memberNameMap.set(m.id, m.name || m.email);
       }
 
-      // Add spouse emails
+      // Add spouse emails — inherit parent member's status
       for (const s of spouses) {
         if (s.email) {
           const spouseName = [s.firstName, s.lastName].filter(Boolean).join(' ') || s.email;
-          recipients.push({ email: s.email, name: spouseName, type: 'member' });
+          const parentStatus = memberStatusMap.get(s.memberId) || 'Active';
+          const isActive = parentStatus === 'Active';
+          recipients.push({
+            email: s.email,
+            name: spouseName,
+            type: 'member',
+            status: isActive ? 'active' : 'inactive',
+          });
         }
       }
     }
@@ -47,7 +88,12 @@ export async function GET(request: NextRequest) {
       const guests = await guestRepository.findAll();
       for (const g of guests) {
         if (g.email) {
-          recipients.push({ email: g.email, name: g.name || g.email, type: 'guest' });
+          recipients.push({
+            email: g.email,
+            name: g.name || g.email,
+            type: 'guest',
+            status: 'guest',
+          });
         }
       }
     }

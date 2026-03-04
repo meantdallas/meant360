@@ -3,6 +3,16 @@ import { toStringRecord } from './base.repository';
 
 const JSON_FIELDS = ['selectedActivities', 'customFields', 'priceBreakdown'];
 
+// Scalar columns that can be set in an update (excludes id, relation FKs, and relation objects)
+const UPDATABLE_FIELDS = new Set([
+  'type', 'name', 'email', 'phone',
+  'registeredAdults', 'registeredKids', 'registeredAt',
+  'actualAdults', 'actualKids', 'checkedInAt',
+  'selectedActivities', 'customFields',
+  'totalPrice', 'priceBreakdown',
+  'paymentStatus', 'paymentMethod', 'transactionId',
+]);
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toRecord(row: any): Record<string, string> {
   const r = { ...row };
@@ -73,7 +83,12 @@ export const eventParticipantRepository = {
   },
 
   async update(id: string, data: Record<string, unknown>): Promise<Record<string, string>> {
-    const input = fromRecord(data);
+    const parsed = fromRecord(data);
+    // Only include updatable scalar columns — Prisma rejects unknown fields and relation FKs
+    const input: Record<string, unknown> = {};
+    Object.keys(parsed).forEach((key) => {
+      if (UPDATABLE_FIELDS.has(key)) input[key] = parsed[key];
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const row = await prisma.eventParticipant.update({ where: { id }, data: input as any });
     return toRecord(row);

@@ -19,7 +19,7 @@ import { analytics } from '@/lib/analytics';
 
 const PAYMENTS_ENABLED = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
 
-type Step = 'loading' | 'identify' | 'membership_offer' | 'membership_expired' | 'already_registered' | 'wizard' | 'payment' | 'submitting' | 'success' | 'error';
+type Step = 'loading' | 'identify' | 'sign_in_required' | 'membership_offer' | 'membership_expired' | 'already_registered' | 'wizard' | 'payment' | 'submitting' | 'success' | 'error';
 type WizardStep = 'contact' | 'profile_review' | 'attendees' | 'activities' | 'review';
 
 const WIZARD_LABELS: Record<WizardStep, string> = {
@@ -183,13 +183,6 @@ export default function RegisterPage() {
     steps.push('review');
     return steps;
   }, [regType, eventActivities.length, guestPolicy?.allowGuestActivities]);
-
-  // Auth gate: redirect to sign-in if not authenticated
-  useEffect(() => {
-    if (sessionStatus === 'unauthenticated') {
-      router.push(`/auth/signin?callbackUrl=/events/${eventId}/register`);
-    }
-  }, [sessionStatus, router, eventId]);
 
   // Auto-lookup when identify step is reached and user is authenticated
   useEffect(() => {
@@ -486,6 +479,12 @@ export default function RegisterPage() {
       }
 
       if (data.status === 'member_active') {
+        if (!session?.user?.email) {
+          // Active member but not signed in — prompt to sign in
+          setForm((f) => ({ ...f, name: data.name || '', email: lookupEmail.trim() }));
+          setStep('sign_in_required');
+          return;
+        }
         setRegType('Member');
         setForm((f) => ({
           ...f,
@@ -1005,6 +1004,26 @@ export default function RegisterPage() {
               Look Up
             </button>
           </div>
+        </div>
+      )}
+
+      {step === 'sign_in_required' && (
+        <div className="card p-6 text-center">
+          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+            <HiOutlineCheckCircle className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Welcome, {form.name}!
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            As an active member, please sign in to continue with your full profile and member benefits.
+          </p>
+          <button
+            onClick={() => router.push(`/auth/signin?callbackUrl=/events/${eventId}/register`)}
+            className="btn-primary w-full"
+          >
+            Sign In
+          </button>
         </div>
       )}
 

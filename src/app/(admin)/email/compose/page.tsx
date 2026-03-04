@@ -1,27 +1,41 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import PageHeader from '@/components/ui/PageHeader';
 import RecipientInput from '@/components/email/RecipientInput';
 import RichTextEditor from '@/components/email/RichTextEditor';
-import TemplateSelector from '@/components/email/TemplateSelector';
 import EmailPreviewModal from '@/components/email/EmailPreviewModal';
 import toast from 'react-hot-toast';
+
+interface EmailCategory {
+  name: string;
+  email: string;
+}
 
 export default function EmailComposePage() {
   const { data: session } = useSession();
   const role = (session?.user as Record<string, unknown>)?.role as string;
 
+  const [from, setFrom] = useState('');
   const [to, setTo] = useState<string[]>([]);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [emailCategories, setEmailCategories] = useState<EmailCategory[]>([]);
 
-  const handleTemplateSelect = useCallback((template: { subject: string; body: string }) => {
-    setSubject(template.subject);
-    setBody(template.body);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/settings');
+        const json = await res.json();
+        if (json.success && json.data) {
+          const cats = JSON.parse(json.data['email_categories'] || '[]');
+          if (Array.isArray(cats)) setEmailCategories(cats);
+        }
+      } catch { /* ignore */ }
+    })();
   }, []);
 
   const validateForm = () => {
@@ -36,10 +50,12 @@ export default function EmailComposePage() {
 
     setSending(true);
     try {
+      const payload: Record<string, unknown> = { to, subject, body };
+      if (from) payload.from = from;
       const res = await fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, subject, body }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (json.success) {
@@ -64,14 +80,27 @@ export default function EmailComposePage() {
 
   return (
     <>
-      <PageHeader
-        title="Compose Email"
-        action={
-          <TemplateSelector onSelect={handleTemplateSelect} />
-        }
-      />
+      <PageHeader title="Compose Email" />
 
       <div className="space-y-4">
+        {emailCategories.length > 0 && (
+          <div>
+            <label className="label">From</label>
+            <select
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="select"
+            >
+              <option value="">Default</option>
+              {emailCategories.map((cat) => (
+                <option key={cat.email} value={cat.email}>
+                  {cat.name} ({cat.email})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div>
           <label className="label">To</label>
           <RecipientInput value={to} onChange={setTo} />
@@ -117,6 +146,7 @@ export default function EmailComposePage() {
         onClose={() => setShowPreview(false)}
         onSend={handleSend}
         sending={sending}
+        from={from || undefined}
         to={to}
         subject={subject}
         body={body}

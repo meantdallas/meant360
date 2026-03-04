@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       validated.subject,
       validated.body,
       auth.email,
+      validated.from,
     );
 
     if (result.success) {
