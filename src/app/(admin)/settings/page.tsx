@@ -19,7 +19,6 @@ import {
   HiOutlineEnvelope,
   HiOutlinePlus,
   HiOutlineTrash,
-  HiOutlineCalendarDays,
 } from 'react-icons/hi2';
 import { FaSquare, FaPaypal, FaCcVisa, FaCcMastercard, FaCcAmex } from 'react-icons/fa6';
 
